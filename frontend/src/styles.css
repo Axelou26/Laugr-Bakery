@@ -1,0 +1,146 @@
+/* ===== Laugr Bakery - Design System ===== */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
+:root {
+  /*
+   * Charte Laugr Bakery — palette :
+   * #F1A763 accent, #3D0000 texte / profondeur, #EDE1D8 fonds.
+   */
+  --color-chocolate: #3d0000;
+  --color-chocolate-soft: #5c2525;
+  --color-peach: #f1a763;
+  --color-peach-deep: #d89045;
+  --color-cream: #ede1d8;
+  --color-cream-mid: #e4d7ce;
+  --color-cream-deep: #dcd0c4;
+
+  --color-primary: #f1a763;
+  --color-primary-dark: #b86a2a;
+  --color-primary-light: #f7c896;
+  --color-accent: var(--color-peach);
+  --color-surface: #f5f0eb;
+  --color-surface-elevated: #fffdfb;
+  --color-bg-warm: #ede1d8;
+  --color-text: var(--color-chocolate);
+  --color-text-muted: #6b4545;
+  --color-border: #d4c4b8;
+  --color-brand-deep: var(--color-chocolate);
+  --color-brand-deep-soft: var(--color-chocolate-soft);
+  --color-hero-tint: #f5ebe4;
+  --color-glow-peach: rgba(241, 167, 99, 0.35);
+  --color-border-peach: rgba(241, 167, 99, 0.42);
+  --color-primary-rgb: 241, 167, 99;
+  --color-shadow-chocolate: 61, 0, 0;
+  --color-success: #4a9c6d;
+  --color-error: #c75c5c;
+  --color-warning: #c4923a;
+
+  /* Typography */
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Shadows (teinte chocolat) */
+  --shadow-sm: 0 1px 3px rgba(var(--color-shadow-chocolate), 0.07);
+  --shadow-md: 0 4px 14px rgba(var(--color-shadow-chocolate), 0.09);
+  --shadow-lg: 0 14px 36px rgba(var(--color-shadow-chocolate), 0.11);
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-text);
+  min-height: 100vh;
+  background-color: var(--color-cream);
+  background-image:
+    radial-gradient(ellipse 120% 55% at 50% -15%, var(--color-glow-peach) 0%, transparent 52%),
+    linear-gradient(180deg, var(--color-cream) 0%, var(--color-cream-mid) 48%, var(--color-cream-deep) 100%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+/* Utilitaires */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: #fffaf6;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-sm);
+}
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(var(--color-shadow-chocolate), 0.22);
+}
+.btn-primary:active:not(:disabled) { transform: translateY(0); }
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-xl);
+  letter-spacing: -0.02em;
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-2xl);
+  background: linear-gradient(165deg, var(--color-surface-elevated) 0%, var(--color-hero-tint) 100%);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-peach);
+}
+.empty-state p {
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-lg);
+}
+
+/* Responsive global */
+@media (max-width: 600px) {
+  .page-title { font-size: 1.4rem; margin-bottom: var(--space-lg); }
+  .empty-state { padding: var(--space-xl); }
+  .btn-primary { padding: 0.65rem 1.25rem; font-size: 0.95rem; }
+}

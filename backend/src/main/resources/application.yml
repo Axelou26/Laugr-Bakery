@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: cookie-shop-api
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  # H2 en fichier : les données survivent au redémarrage du serveur (pas seulement au F5 du navigateur).
+  # En production, remplace par PostgreSQL / MySQL.
+  datasource:
+    url: jdbc:h2:file:./data/cookieshop;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    # database-platform retiré : Hibernate détecte automatiquement H2 (évite HHH90000025)
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+server:
+  port: 8081
+
+# Upload d'images
+app:
+  upload-dir: uploads
+  base-url: http://localhost:8081
+
+# CORS - à configurer selon ton frontend
+cors:
+  allowed-origins: http://localhost:4200
+
+# JWT
+jwt:
+  secret: cookieShopSecretKeyForJwtTokenGenerationMustBeAtLeast256BitsLong
+  expiration: 86400000
+
+# PayPal (sandbox pour les tests - crée un compte sur developer.paypal.com)
+paypal:
+  client-id: ${PAYPAL_CLIENT_ID:}
+  client-secret: ${PAYPAL_CLIENT_SECRET:}
+  mode: sandbox
