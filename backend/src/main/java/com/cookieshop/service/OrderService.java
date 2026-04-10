@@ -172,12 +172,14 @@ public class OrderService {
         return dto;
     }
 
+    @Transactional(readOnly = true)
     public List<OrderDto> getOrdersByUser(Long userId) {
         return orderRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public OrderDto getOrderById(Long id, Long userId) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Commande", id));
@@ -187,6 +189,7 @@ public class OrderService {
         return toDto(order);
     }
 
+    @Transactional(readOnly = true)
     public List<OrderDto> getAllOrders() {
         return orderRepository.findAllByOrderByCreatedAtDesc().stream()
                 .map(this::toDto)
