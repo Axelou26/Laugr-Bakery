@@ -12,5 +12,7 @@ RUN useradd -r -u 1001 appuser && mkdir -p /app/data /app/uploads && chown -R ap
 COPY --from=build /app/target/backend-1.0.0.jar app.jar
 USER appuser
 EXPOSE 8081
+# Profil prod = PostgreSQL (Neon) via application-prod.yml ; Render fournit SPRING_DATASOURCE_* .
+ENV SPRING_PROFILES_ACTIVE=prod
 # Render définit PORT ; application.yml utilise ${PORT:8081}
 ENTRYPOINT ["java", "-jar", "app.jar"]
