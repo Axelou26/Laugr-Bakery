@@ -1,0 +1,16 @@
+# Déploiement du front Angular (dossier frontend/)
+# L’API Spring Boot doit être hébergée ailleurs (ex. Render) : mets son URL dans environment.prod.ts (apiUrl).
+
+[build]
+  base = "frontend"
+  command = "npm ci && npm run build"
+  publish = "dist/cookie-shop/browser"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Routes Angular (pas de 404 au refresh)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -30,16 +30,17 @@ spring:
       path: /h2-console
 
 server:
-  port: 8081
+  # Render / Railway injectent PORT ; en local on garde 8081
+  port: ${PORT:8081}
 
 # Upload d'images
 app:
   upload-dir: uploads
   base-url: http://localhost:8081
 
-# CORS - à configurer selon ton frontend
+# CORS — en prod (Render) : variable d’environnement cors.allowed-origins (URLs séparées par des virgules)
 cors:
-  allowed-origins: http://localhost:4200
+  allowed-origins: http://localhost:4200,http://127.0.0.1:4200
 
 # JWT
 jwt:
