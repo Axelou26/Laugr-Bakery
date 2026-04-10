@@ -9,6 +9,7 @@ import com.cookieshop.repository.CookieRepository;
 import com.cookieshop.repository.OrderRepository;
 import com.cookieshop.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +32,8 @@ public class OrderService {
     private static final int BOX_SIZE = 6;
     private static final BigDecimal BOX_PRICE = new BigDecimal("18.00");
 
-    @Transactional
+    /** Transaction ouverte pendant tout le flux (dont appels PayPal distants) pour que toDto voie le graphe JPA. */
+    @Transactional(rollbackFor = Exception.class)
     public OrderDto createOrder(Long userId, List<CartItemDto> cartItems, List<BoxOrderDto> boxes,
                                String shippingAddress, LocalDate deliveryDate, Order.PaymentMethod paymentMethod) {
         if (!shopStatusService.isSalesOpen()) {
@@ -141,14 +143,15 @@ public class OrderService {
         }
 
         order = orderRepository.save(order);
+        ensureOrderGraphLoaded(order);
         OrderDto dto = toDto(order);
         orderNotificationPublisher.notifyNewOrder(dto);
         return dto;
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public OrderDto capturePayPalOrder(Long userId, String paypalOrderId) {
-        com.cookieshop.entity.Order order = orderRepository.findByPaypalOrderId(paypalOrderId)
+        Order order = orderRepository.findByPaypalOrderIdWithDetails(paypalOrderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Commande non trouvée"));
 
         if (!order.getUser().getId().equals(userId)) {
@@ -167,9 +170,19 @@ public class OrderService {
 
         order.setStatus(Order.OrderStatus.CONFIRMED);
         orderRepository.save(order);
+        ensureOrderGraphLoaded(order);
         OrderDto dto = toDto(order);
         orderNotificationPublisher.notifyOrderStatusToUser(dto);
         return dto;
+    }
+
+    /** Initialise user / items / cookie dans la session Hibernate (nécessaire avec open-in-view désactivé). */
+    private void ensureOrderGraphLoaded(Order order) {
+        Hibernate.initialize(order.getUser());
+        Hibernate.initialize(order.getItems());
+        for (OrderItem item : order.getItems()) {
+            Hibernate.initialize(item.getCookie());
+        }
     }
 
     @Transactional(readOnly = true)
