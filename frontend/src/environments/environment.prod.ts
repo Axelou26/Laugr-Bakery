@@ -1,4 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: '' // En prod, utilise des URLs relatives (même domaine ou proxy)
+  // API sur Render (pas sur Netlify : le statique n’a pas de /api)
+  apiUrl: 'https://laugr-bakery.onrender.com'
 };
