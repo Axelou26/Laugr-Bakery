@@ -24,8 +24,19 @@ public class CorsConfig {
                 .filter(s -> !s.isEmpty())
                 .toList();
         config.setAllowedOrigins(origins);
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
+        // SockJS (/ws/info, transports XHR) envoie des requêtes « credentialed » : obligatoire avec origines explicites.
+        config.setAllowCredentials(true);
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "Origin",
+                "X-Requested-With",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers",
+                "Cache-Control",
+                "Pragma"));
         config.setExposedHeaders(List.of("Authorization"));
         config.setMaxAge(3600L);
 

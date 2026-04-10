@@ -20,7 +20,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final JwtWebSocketHandshakeInterceptor jwtHandshakeInterceptor;
     private final AdminSubscriptionChannelInterceptor adminSubscriptionChannelInterceptor;
 
-    @Value("${cors.allowed-origins:http://localhost:4200}")
+    @Value("${cors.allowed-origins:http://localhost:4200,http://127.0.0.1:4200}")
     private String allowedOrigins;
 
     private final JwtHandshakeHandler jwtHandshakeHandler = new JwtHandshakeHandler();
