@@ -46,6 +46,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/bowls").permitAll()
                         .requestMatchers("/api/bowls/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/orders/paypal/config").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/orders/**").authenticated()
                         .anyRequest().authenticated()

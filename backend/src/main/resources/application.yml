@@ -46,8 +46,8 @@ jwt:
   secret: cookieShopSecretKeyForJwtTokenGenerationMustBeAtLeast256BitsLong
   expiration: 86400000
 
-# PayPal (sandbox pour les tests - crée un compte sur developer.paypal.com)
+# PayPal — sandbox ou live : PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_MODE (Render / .env)
 paypal:
   client-id: ${PAYPAL_CLIENT_ID:}
   client-secret: ${PAYPAL_CLIENT_SECRET:}
-  mode: sandbox
+  mode: ${PAYPAL_MODE:sandbox}

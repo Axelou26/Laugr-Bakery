@@ -8,6 +8,7 @@ import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { FormsModule } from '@angular/forms';
 import { ShopStatusService } from '../../services/shop-status.service';
+import { environment } from '../../../environments/environment';
 
 declare global {
   interface Window {
@@ -354,10 +355,22 @@ export class CartComponent implements OnInit, OnDestroy {
         this.refreshDeliveryOptions();
       }
     });
+    this.refreshPayPalConfig();
+  }
+
+  /** Config PayPal : API (prioritaire) + optionnellement environment.paypalClientId. */
+  private refreshPayPalConfig(): void {
     this.orderService.getPayPalConfig().subscribe({
       next: (config) => {
-        this.paypalEnabled = config.enabled;
-        this.paypalClientId = config.clientId || '';
+        const fromApi = (config.clientId || '').trim();
+        const fromEnv = (environment.paypalClientId || '').trim();
+        this.paypalClientId = fromApi || fromEnv;
+        this.paypalEnabled = config.enabled && !!this.paypalClientId;
+      },
+      error: () => {
+        const fromEnv = (environment.paypalClientId || '').trim();
+        this.paypalClientId = fromEnv;
+        this.paypalEnabled = false;
       }
     });
   }
@@ -449,6 +462,7 @@ export class CartComponent implements OnInit, OnDestroy {
       this.router.navigate(['/connexion'], { queryParams: { returnUrl: '/panier' } });
       return;
     }
+    this.refreshPayPalConfig();
     this.checkoutMode = true;
     this.refreshDeliveryOptions();
     this.paypalRendered = false;
@@ -479,7 +493,7 @@ export class CartComponent implements OnInit, OnDestroy {
     }
 
     const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${this.paypalClientId}&currency=EUR&intent=capture`;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(this.paypalClientId)}&currency=EUR&intent=capture&locale=fr_FR&components=buttons`;
     script.async = true;
     script.onload = () => this.initPayPalButtons();
     document.head.appendChild(script);

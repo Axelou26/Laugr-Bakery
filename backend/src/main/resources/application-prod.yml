@@ -10,3 +10,9 @@ spring:
   h2:
     console:
       enabled: false
+
+# Même clés que sur developer.paypal.com (Render : variables d’environnement).
+paypal:
+  client-id: ${PAYPAL_CLIENT_ID:}
+  client-secret: ${PAYPAL_CLIENT_SECRET:}
+  mode: ${PAYPAL_MODE:sandbox}
