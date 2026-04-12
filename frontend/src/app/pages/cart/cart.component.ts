@@ -92,7 +92,7 @@ declare global {
                 </label>
                 <label class="payment-option">
                   <input type="radio" name="fulfillment" [(ngModel)]="shippingAddress" [value]="fulfillmentPickup" />
-                  <span>🥡 À emporter</span>
+                  <span class="pickup-label">🥡 {{ fulfillmentPickup }}</span>
                 </label>
               </div>
 
@@ -307,6 +307,7 @@ declare global {
       border: 1px solid var(--color-border);
     }
     .payment-option:hover { background: var(--color-bg-warm); }
+    .pickup-label { white-space: normal; line-height: 1.35; }
     .paypal-section { margin-top: 1rem; }
     .paypal-hint { font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 0.75rem; }
     .paypal-container { min-height: 45px; margin-bottom: 1rem; }
@@ -328,9 +329,10 @@ export class CartComponent implements OnInit, OnDestroy {
   @ViewChild('paypalContainer', { static: false }) paypalContainer!: ElementRef<HTMLDivElement>;
 
   checkoutMode = false;
-  /** Libellés alignés sur le backend (OrderService.ALLOWED_FULFILLMENT_OPTIONS) */
   readonly fulfillmentInsep = "Livré à l'INSEP";
-  readonly fulfillmentPickup = 'À emporter';
+  /** Valeur enregistrée sur la commande (adresse de retrait). */
+  readonly fulfillmentPickup =
+    'À emporter — 37 avenue Boileau, 94500 Champigny-sur-Marne';
   shippingAddress = "Livré à l'INSEP";
   deliveryDate = '';
   paymentMethod: PaymentMethod = 'PAY_ON_DELIVERY';
@@ -366,13 +368,23 @@ export class CartComponent implements OnInit, OnDestroy {
         const fromEnv = (environment.paypalClientId || '').trim();
         this.paypalClientId = fromApi || fromEnv;
         this.paypalEnabled = config.enabled && !!this.paypalClientId;
+        this.schedulePayPalButtonIfNeeded();
       },
       error: () => {
         const fromEnv = (environment.paypalClientId || '').trim();
         this.paypalClientId = fromEnv;
-        this.paypalEnabled = false;
+        // Secours si GET /paypal/config échoue (CORS, réseau) : le client ID dans environment suffit pour le SDK.
+        this.paypalEnabled = !!fromEnv;
+        this.schedulePayPalButtonIfNeeded();
       }
     });
+  }
+
+  private schedulePayPalButtonIfNeeded(): void {
+    if (this.checkoutMode && this.paymentMethod === 'PAYPAL' && this.paypalEnabled) {
+      this.paypalRendered = false;
+      setTimeout(() => this.renderPayPalButton(), 100);
+    }
   }
 
   private todayLocalIso(): string {
@@ -462,13 +474,10 @@ export class CartComponent implements OnInit, OnDestroy {
       this.router.navigate(['/connexion'], { queryParams: { returnUrl: '/panier' } });
       return;
     }
-    this.refreshPayPalConfig();
     this.checkoutMode = true;
     this.refreshDeliveryOptions();
     this.paypalRendered = false;
-    if (this.paymentMethod === 'PAYPAL' && this.paypalEnabled) {
-      setTimeout(() => this.renderPayPalButton(), 100);
-    }
+    this.refreshPayPalConfig();
   }
 
   cancelCheckout() {
@@ -478,10 +487,7 @@ export class CartComponent implements OnInit, OnDestroy {
 
   onPaymentChange(method: PaymentMethod) {
     this.paymentMethod = method;
-    if (method === 'PAYPAL' && this.checkoutMode && this.paypalEnabled) {
-      this.paypalRendered = false;
-      setTimeout(() => this.renderPayPalButton(), 100);
-    }
+    this.schedulePayPalButtonIfNeeded();
   }
 
   private renderPayPalButton() {

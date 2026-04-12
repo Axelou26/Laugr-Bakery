@@ -1,0 +1,14 @@
+# Activer PayPal en local :
+# 1. Copier ce fichier vers application-local.yml (fichier ignoré par git).
+# 2. Renseigner client-id et client-secret (sandbox sur https://developer.paypal.com ).
+# 3. Lancer l’API avec le profil local, par exemple :
+#    $env:SPRING_PROFILES_ACTIVE="local"   # PowerShell
+#    mvn -f backend/pom.xml spring-boot:run
+#
+# Alternative : variables d’environnement PAYPAL_CLIENT_ID et PAYPAL_CLIENT_SECRET
+# (sans fichier application-local.yml).
+
+paypal:
+  client-id: "VOTRE_CLIENT_ID_SANDBOX"
+  client-secret: "VOTRE_SECRET_SANDBOX"
+  mode: sandbox

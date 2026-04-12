@@ -32,7 +32,7 @@ import { RouterLink } from '@angular/router';
       <div class="feature">
         <span class="feature-icon">🚚</span>
         <h3>Livraison rapide</h3>
-        <p>Livraison à l'INSEP ou à emporter</p>
+        <p>Livraison à l'INSEP ou retrait au 37 avenue Boileau, 94500 Champigny-sur-Marne</p>
       </div>
       <div class="feature">
         <span class="feature-icon">💚</span>

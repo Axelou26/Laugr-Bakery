@@ -46,7 +46,8 @@ jwt:
   secret: cookieShopSecretKeyForJwtTokenGenerationMustBeAtLeast256BitsLong
   expiration: 86400000
 
-# PayPal — sandbox ou live : PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_MODE (Render / .env)
+# PayPal — sandbox ou live : PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_MODE (Render / terminal).
+# En local : voir application-local.yml.example (profil spring: local).
 paypal:
   client-id: ${PAYPAL_CLIENT_ID:}
   client-secret: ${PAYPAL_CLIENT_SECRET:}

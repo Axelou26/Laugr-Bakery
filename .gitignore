@@ -23,3 +23,6 @@ Thumbs.db
 # Env
 .env
 .env.local
+
+# Secrets PayPal / overrides profil local (copie de application-local.yml.example)
+backend/src/main/resources/application-local.yml
