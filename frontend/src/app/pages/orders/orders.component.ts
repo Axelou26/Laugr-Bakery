@@ -28,7 +28,7 @@ import { OrderService, Order } from '../../services/order.service';
             </div>
             <p class="order-date">{{ order.createdAt | date:'dd/MM/yyyy à HH:mm' }}</p>
             @if (order.deliveryDate) {
-              <p class="delivery-date">📅 Livraison prévue : {{ order.deliveryDate | date:'dd/MM/yyyy' }}</p>
+              <p class="delivery-date">📅 Livraison / retrait prévu : {{ order.deliveryDate | date:'dd/MM/yyyy à HH:mm' }}</p>
             }
             @if (order.shippingAddress) {
               <p class="fulfillment-line">📦 {{ order.shippingAddress }}</p>

@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,11 +31,10 @@ public class OrderService {
 
     private static final int BOX_SIZE = 6;
     private static final BigDecimal BOX_PRICE = new BigDecimal("18.00");
-
     /** Transaction ouverte pendant tout le flux (dont appels PayPal distants) pour que toDto voie le graphe JPA. */
     @Transactional(rollbackFor = Exception.class)
     public OrderDto createOrder(Long userId, List<CartItemDto> cartItems, List<BoxOrderDto> boxes,
-                               String shippingAddress, LocalDate deliveryDate, Order.PaymentMethod paymentMethod) {
+                               String shippingAddress, LocalDateTime deliveryDate, Order.PaymentMethod paymentMethod) {
         if (!shopStatusService.isSalesOpen()) {
             throw new IllegalStateException("Les ventes sont actuellement fermées. Revenez plus tard.");
         }
@@ -48,17 +47,22 @@ public class OrderService {
         }
 
         if (deliveryDate == null) {
-            throw new IllegalArgumentException("La date de livraison est obligatoire");
+            throw new IllegalArgumentException("La date et l'heure de livraison sont obligatoires");
         }
         if (shippingAddress == null || shippingAddress.isBlank()) {
             throw new IllegalArgumentException("Choisissez un mode de livraison ou de retrait");
         }
-        List<LocalDate> allowedDates = shopStatusService.getDeliveryDates();
-        if (allowedDates.isEmpty()) {
-            throw new IllegalStateException("Aucune date de livraison n'est configurée pour le moment.");
+        boolean pickup = isPickupFulfillment(shippingAddress);
+        List<LocalDateTime> allowedSlots = pickup
+                ? shopStatusService.getPickupDeliverySlots()
+                : shopStatusService.getInsepDeliverySlots();
+        if (allowedSlots.isEmpty()) {
+            throw new IllegalStateException(pickup
+                    ? "Aucun créneau de retrait n'est configuré pour le moment."
+                    : "Aucun créneau de livraison INSEP n'est configuré pour le moment.");
         }
-        if (!allowedDates.contains(deliveryDate)) {
-            throw new IllegalArgumentException("Cette date de livraison n'est pas disponible");
+        if (!allowedSlots.contains(deliveryDate)) {
+            throw new IllegalArgumentException("Ce créneau n'est pas disponible pour le mode choisi");
         }
 
         Order order = Order.builder()
@@ -244,5 +248,10 @@ public class OrderService {
                 .paymentMethod(order.getPaymentMethod())
                 .paypalOrderId(order.getPaypalOrderId())
                 .build();
+    }
+
+    /** Aligné sur les libellés du panier : retrait si l'adresse contient « À emporter ». */
+    private static boolean isPickupFulfillment(String shippingAddress) {
+        return shippingAddress != null && shippingAddress.contains("À emporter");
     }
 }

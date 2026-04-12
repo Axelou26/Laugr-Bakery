@@ -41,32 +41,44 @@ import { ToastService } from '../../services/toast.service';
       }
     </div>
     <div class="opening-control">
-      <label for="exactDeliveryDate"><strong>Dates de livraison (ex: 28 mars) :</strong></label>
+      <label for="slotInsep"><strong>Créneaux livraison INSEP (date + heure) :</strong></label>
       <div class="opening-actions">
-        <input id="exactDeliveryDate" type="date" [(ngModel)]="deliveryDateInput" />
-        <button type="button" class="btn-toggle-sales" (click)="addExactDeliveryDate()">
-          Ajouter la date
-        </button>
-        <button type="button" class="btn-toggle-sales" (click)="saveExactDeliveryDates()">
-          Enregistrer les dates
-        </button>
+        <input id="slotInsep" type="datetime-local" [(ngModel)]="deliverySlotInputInsep" />
+        <button type="button" class="btn-toggle-sales" (click)="addInsepSlot()">Ajouter le créneau</button>
+        <button type="button" class="btn-toggle-sales" (click)="saveAllSlots()">Enregistrer tout</button>
       </div>
-      @if (exactDeliveryDates.length > 0) {
+      @if (exactDeliverySlotsInsep.length > 0) {
         <div class="date-chips">
-          @for (date of exactDeliveryDates; track date) {
-            <button type="button" class="date-chip" (click)="removeExactDeliveryDate(date)">
-              {{ formatLocalDateLabel(date) }} ✕
+          @for (slot of exactDeliverySlotsInsep; track slot) {
+            <button type="button" class="date-chip" (click)="removeInsepSlot(slot)">
+              {{ formatSlotLabel(slot) }} ✕
             </button>
           }
         </div>
-        <p class="opening-preview">
-          Proposées aux clients au panier. Ajout et suppression sont enregistrés tout de suite sur le serveur.
-        </p>
-      } @else {
-        <p class="opening-preview">
-          Ajoute une date puis clique sur « Ajouter la date » : elle est enregistrée automatiquement.
-        </p>
       }
+      <p class="opening-preview">
+        Proposés au panier lorsque le client choisit « Livré à l'INSEP ». Chaque ligne est un créneau précis.
+      </p>
+    </div>
+    <div class="opening-control">
+      <label for="slotPickup"><strong>Créneaux retrait « à emporter » (date + heure) :</strong></label>
+      <div class="opening-actions">
+        <input id="slotPickup" type="datetime-local" [(ngModel)]="deliverySlotInputPickup" />
+        <button type="button" class="btn-toggle-sales" (click)="addPickupSlot()">Ajouter le créneau</button>
+        <button type="button" class="btn-toggle-sales" (click)="saveAllSlots()">Enregistrer tout</button>
+      </div>
+      @if (exactDeliverySlotsPickup.length > 0) {
+        <div class="date-chips">
+          @for (slot of exactDeliverySlotsPickup; track slot) {
+            <button type="button" class="date-chip" (click)="removePickupSlot(slot)">
+              {{ formatSlotLabel(slot) }} ✕
+            </button>
+          }
+        </div>
+      }
+      <p class="opening-preview">
+        Proposés au panier pour le retrait au 37 avenue Boileau. Indépendants des créneaux INSEP.
+      </p>
     </div>
 
     @if (lowStockCookies.length > 0) {
@@ -229,8 +241,10 @@ import { ToastService } from '../../services/toast.service';
 export class AdminDashboardComponent implements OnInit {
   lowStockCookies: Cookie[] = [];
   nextOpeningAtInput = '';
-  deliveryDateInput = '';
-  exactDeliveryDates: string[] = [];
+  deliverySlotInputInsep = '';
+  deliverySlotInputPickup = '';
+  exactDeliverySlotsInsep: string[] = [];
+  exactDeliverySlotsPickup: string[] = [];
 
   constructor(
     private cookieService: CookieService,
@@ -250,21 +264,26 @@ export class AdminDashboardComponent implements OnInit {
       next: () => {
         const current = this.shopStatus.nextOpeningAt();
         this.nextOpeningAtInput = current ? current.slice(0, 16) : '';
-        this.exactDeliveryDates = [...this.shopStatus.deliveryDates()];
+        this.exactDeliverySlotsInsep = [...this.shopStatus.deliveryDatesInsep()];
+        this.exactDeliverySlotsPickup = [...this.shopStatus.deliveryDatesPickup()];
       }
     });
   }
 
   toggleSales() {
     const nextState = !this.shopStatus.salesOpen();
-    this.shopStatus.updateStatus(nextState, this.toIsoOrNull(this.nextOpeningAtInput), this.exactDeliveryDates).subscribe({
+    this.shopStatus
+      .updateStatus(nextState, this.toIsoOrNull(this.nextOpeningAtInput), this.exactDeliverySlotsInsep, this.exactDeliverySlotsPickup)
+      .subscribe({
       next: () => this.toast.success(nextState ? 'Ventes ouvertes' : 'Ventes fermées'),
       error: (err) => this.toast.error(err.error?.message || 'Impossible de modifier le statut des ventes')
     });
   }
 
   saveNextOpening() {
-    this.shopStatus.updateStatus(this.shopStatus.salesOpen(), this.toIsoOrNull(this.nextOpeningAtInput), this.exactDeliveryDates).subscribe({
+    this.shopStatus
+      .updateStatus(this.shopStatus.salesOpen(), this.toIsoOrNull(this.nextOpeningAtInput), this.exactDeliverySlotsInsep, this.exactDeliverySlotsPickup)
+      .subscribe({
       next: () => {
         const current = this.shopStatus.nextOpeningAt();
         this.nextOpeningAtInput = current ? current.slice(0, 16) : '';
@@ -276,62 +295,106 @@ export class AdminDashboardComponent implements OnInit {
 
   clearNextOpening() {
     this.nextOpeningAtInput = '';
-    this.shopStatus.updateStatus(this.shopStatus.salesOpen(), null, this.exactDeliveryDates).subscribe({
+    this.shopStatus
+      .updateStatus(this.shopStatus.salesOpen(), null, this.exactDeliverySlotsInsep, this.exactDeliverySlotsPickup)
+      .subscribe({
       next: () => this.toast.success('Date d\'ouverture effacée'),
       error: (err) => this.toast.error(err.error?.message || 'Impossible d\'effacer la date')
     });
   }
 
-  addExactDeliveryDate() {
-    if (!this.deliveryDateInput) {
-      this.toast.warning('Choisis une date à ajouter');
-      return;
-    }
-    if (this.exactDeliveryDates.includes(this.deliveryDateInput)) {
-      this.toast.warning('Cette date est déjà ajoutée');
-      return;
-    }
-    const next = [...this.exactDeliveryDates, this.deliveryDateInput].sort();
-    this.deliveryDateInput = '';
-    this.persistDeliveryDates(next, false);
+  private toApiSlot(isoLocal: string): string {
+    const v = isoLocal.trim();
+    if (!v) return '';
+    if (v.length === 16) return `${v}:00`;
+    return v;
   }
 
-  removeExactDeliveryDate(date: string) {
-    this.persistDeliveryDates(
-      this.exactDeliveryDates.filter((d) => d !== date),
+  addInsepSlot() {
+    if (!this.deliverySlotInputInsep) {
+      this.toast.warning('Choisis un créneau (date et heure)');
+      return;
+    }
+    const slot = this.toApiSlot(this.deliverySlotInputInsep);
+    if (this.exactDeliverySlotsInsep.includes(slot)) {
+      this.toast.warning('Ce créneau est déjà ajouté');
+      return;
+    }
+    const next = [...this.exactDeliverySlotsInsep, slot].sort();
+    this.deliverySlotInputInsep = '';
+    this.persistSlots(next, this.exactDeliverySlotsPickup, false);
+  }
+
+  removeInsepSlot(slot: string) {
+    this.persistSlots(
+      this.exactDeliverySlotsInsep.filter((s) => s !== slot),
+      this.exactDeliverySlotsPickup,
       false
     );
   }
 
-  saveExactDeliveryDates() {
-    this.persistDeliveryDates(this.exactDeliveryDates, true);
+  addPickupSlot() {
+    if (!this.deliverySlotInputPickup) {
+      this.toast.warning('Choisis un créneau (date et heure)');
+      return;
+    }
+    const slot = this.toApiSlot(this.deliverySlotInputPickup);
+    if (this.exactDeliverySlotsPickup.includes(slot)) {
+      this.toast.warning('Ce créneau est déjà ajouté');
+      return;
+    }
+    const next = [...this.exactDeliverySlotsPickup, slot].sort();
+    this.deliverySlotInputPickup = '';
+    this.persistSlots(this.exactDeliverySlotsInsep, next, false);
   }
 
-  private persistDeliveryDates(dates: string[], showSuccessToast: boolean) {
-    const previous = [...this.exactDeliveryDates];
-    this.exactDeliveryDates = [...dates].sort();
+  removePickupSlot(slot: string) {
+    this.persistSlots(
+      this.exactDeliverySlotsInsep,
+      this.exactDeliverySlotsPickup.filter((s) => s !== slot),
+      false
+    );
+  }
+
+  saveAllSlots() {
+    this.persistSlots(this.exactDeliverySlotsInsep, this.exactDeliverySlotsPickup, true);
+  }
+
+  private persistSlots(insep: string[], pickup: string[], showSuccessToast: boolean) {
+    const prevInsep = [...this.exactDeliverySlotsInsep];
+    const prevPickup = [...this.exactDeliverySlotsPickup];
+    this.exactDeliverySlotsInsep = [...insep].sort();
+    this.exactDeliverySlotsPickup = [...pickup].sort();
     this.shopStatus
-      .updateStatus(this.shopStatus.salesOpen(), this.toIsoOrNull(this.nextOpeningAtInput), this.exactDeliveryDates)
+      .updateStatus(this.shopStatus.salesOpen(), this.toIsoOrNull(this.nextOpeningAtInput), this.exactDeliverySlotsInsep, this.exactDeliverySlotsPickup)
       .subscribe({
         next: () => {
-          this.exactDeliveryDates = [...this.shopStatus.deliveryDates()];
+          this.exactDeliverySlotsInsep = [...this.shopStatus.deliveryDatesInsep()];
+          this.exactDeliverySlotsPickup = [...this.shopStatus.deliveryDatesPickup()];
           if (showSuccessToast) {
-            this.toast.success('Dates de livraison enregistrées');
+            this.toast.success('Créneaux enregistrés');
           }
         },
         error: (err) => {
-          this.exactDeliveryDates = previous;
-          this.toast.error(err.error?.message || 'Impossible d\'enregistrer les dates de livraison');
+          this.exactDeliverySlotsInsep = prevInsep;
+          this.exactDeliverySlotsPickup = prevPickup;
+          this.toast.error(err.error?.message || 'Impossible d\'enregistrer les créneaux');
         }
       });
   }
 
-  formatLocalDateLabel(value: string): string {
+  formatSlotLabel(value: string): string {
     if (!value) return '';
-    const [year, month, day] = value.split('-').map(Number);
-    if (!year || !month || !day) return value;
-    const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
 
   formatDate(value: string | null): string {

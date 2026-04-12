@@ -39,7 +39,7 @@ import { ToastService } from '../../services/toast.service';
             </div>
             <p class="order-date">{{ order.createdAt | date:'dd/MM/yyyy à HH:mm' }}</p>
             @if (order.deliveryDate) {
-              <p class="delivery-date">📅 Livraison prévue : {{ order.deliveryDate | date:'dd/MM/yyyy' }}</p>
+              <p class="delivery-date">📅 Livraison / retrait prévu : {{ order.deliveryDate | date:'dd/MM/yyyy à HH:mm' }}</p>
             }
             <span class="payment-badge" [class.paypal]="order.paymentMethod === 'PAYPAL'">
               {{ order.paymentMethod === 'PAYPAL' ? '🅿️ PayPal' : '💵 À la livraison' }}

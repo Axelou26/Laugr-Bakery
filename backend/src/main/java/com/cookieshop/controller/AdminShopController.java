@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -33,12 +32,18 @@ public class AdminShopController {
     public ResponseEntity<Map<String, Object>> updateStatus(@RequestBody UpdateShopStatusRequest request) {
         shopStatusService.setSalesOpen(request.salesOpen());
         shopStatusService.setNextOpeningAt(parseDateTime(request.nextOpeningAt()));
-        shopStatusService.setDeliveryDates(parseDeliveryDates(request.deliveryDates()));
+        if (request.deliveryDatesInsep() != null) {
+            shopStatusService.setInsepDeliverySlots(parseDeliverySlots(request.deliveryDatesInsep()));
+        }
+        if (request.deliveryDatesPickup() != null) {
+            shopStatusService.setPickupDeliverySlots(parseDeliverySlots(request.deliveryDatesPickup()));
+        }
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("salesOpen", shopStatusService.isSalesOpen());
         payload.put("nextOpeningAt", shopStatusService.getNextOpeningAt());
-        payload.put("deliveryDates", shopStatusService.getDeliveryDates().stream().map(Object::toString).collect(Collectors.toList()));
+        payload.put("deliveryDatesInsep", shopStatusService.getInsepDeliverySlots().stream().map(Object::toString).collect(Collectors.toList()));
+        payload.put("deliveryDatesPickup", shopStatusService.getPickupDeliverySlots().stream().map(Object::toString).collect(Collectors.toList()));
         return ResponseEntity.ok(payload);
     }
 
@@ -62,20 +67,16 @@ public class AdminShopController {
         throw new IllegalArgumentException("Format de date invalide. Utilisez yyyy-MM-ddTHH:mm");
     }
 
-    private List<LocalDate> parseDeliveryDates(List<String> rawDates) {
-        if (rawDates == null || rawDates.isEmpty()) {
+    private List<LocalDateTime> parseDeliverySlots(List<String> rawSlots) {
+        if (rawSlots == null || rawSlots.isEmpty()) {
             return List.of();
         }
-        List<LocalDate> parsed = new ArrayList<>();
-        for (String raw : rawDates) {
+        List<LocalDateTime> parsed = new ArrayList<>();
+        for (String raw : rawSlots) {
             if (raw == null || raw.isBlank()) {
                 continue;
             }
-            try {
-                parsed.add(LocalDate.parse(raw.trim()));
-            } catch (DateTimeParseException ex) {
-                throw new IllegalArgumentException("Date de livraison invalide: " + raw);
-            }
+            parsed.add(ShopStatusService.parseDeliverySlotString(raw.trim()));
         }
         return parsed.stream().distinct().sorted().collect(Collectors.toList());
     }
@@ -83,6 +84,7 @@ public class AdminShopController {
     public record UpdateShopStatusRequest(
             @NotNull Boolean salesOpen,
             String nextOpeningAt,
-            List<String> deliveryDates
+            List<String> deliveryDatesInsep,
+            List<String> deliveryDatesPickup
     ) {}
 }

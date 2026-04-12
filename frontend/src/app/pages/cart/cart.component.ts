@@ -87,21 +87,21 @@ declare global {
               <label>Mode de livraison *</label>
               <div class="fulfillment-options">
                 <label class="payment-option">
-                  <input type="radio" name="fulfillment" [(ngModel)]="shippingAddress" [value]="fulfillmentInsep" />
+                  <input type="radio" name="fulfillment" [(ngModel)]="shippingAddress" [value]="fulfillmentInsep" (ngModelChange)="onFulfillmentChange()" />
                   <span>📍 Livré à l'INSEP</span>
                 </label>
                 <label class="payment-option">
-                  <input type="radio" name="fulfillment" [(ngModel)]="shippingAddress" [value]="fulfillmentPickup" />
+                  <input type="radio" name="fulfillment" [(ngModel)]="shippingAddress" [value]="fulfillmentPickup" (ngModelChange)="onFulfillmentChange()" />
                   <span class="pickup-label">🥡 {{ fulfillmentPickup }}</span>
                 </label>
               </div>
 
-              <label>Date de livraison * <span class="hint-text">(dates proposées par la boutique)</span></label>
+              <label>{{ deliverySlotFieldLabel() }} <span class="hint-text">(créneaux définis par la boutique)</span></label>
               @if (availableDeliveryDates.length === 0) {
-                <p class="delivery-warning">Aucune date de livraison disponible pour le moment.</p>
+                <p class="delivery-warning">{{ emptySlotsMessage() }}</p>
               } @else {
                 <select [(ngModel)]="deliveryDate" class="delivery-select" required>
-                  <option value="">Choisir une date</option>
+                  <option value="">Choisir un créneau</option>
                   @for (opt of availableDeliveryDates; track opt.value) {
                     <option [value]="opt.value">{{ opt.label }}</option>
                   }
@@ -387,35 +387,68 @@ export class CartComponent implements OnInit, OnDestroy {
     }
   }
 
-  private todayLocalIso(): string {
-    const n = new Date();
-    const m = n.getMonth() + 1;
-    const d = n.getDate();
-    return `${n.getFullYear()}-${m < 10 ? '0' : ''}${m}-${d < 10 ? '0' : ''}${d}`;
+  private isPickupSelected(): boolean {
+    return (this.shippingAddress || '').includes('À emporter');
   }
 
-  private getAvailableDeliveryDates(): { value: string; label: string }[] {
-    const today = this.todayLocalIso();
-    return this.shopStatus
-      .deliveryDates()
-      .filter((d) => d >= today)
-      .map((value) => {
-        const [y, mo, da] = value.split('-').map(Number);
-        const date = new Date(y, mo - 1, da);
-        return {
-          value,
-          label: date.toLocaleDateString('fr-FR', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-          })
-        };
-      });
+  deliverySlotFieldLabel(): string {
+    return this.isPickupSelected() ? 'Créneau de retrait *' : 'Créneau de livraison (INSEP) *';
+  }
+
+  emptySlotsMessage(): string {
+    return this.isPickupSelected()
+      ? 'Aucun créneau de retrait disponible pour le moment. Choisis une autre option ou contacte la boutique.'
+      : 'Aucun créneau de livraison INSEP disponible pour le moment.';
+  }
+
+  onFulfillmentChange(): void {
+    this.refreshDeliveryOptions();
+    this.schedulePayPalButtonIfNeeded();
+  }
+
+  private slotStartMs(iso: string): number {
+    const t = new Date(iso).getTime();
+    return Number.isNaN(t) ? 0 : t;
+  }
+
+  private formatSlotLabel(iso: string): string {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  private rawSlotsForMode(): string[] {
+    return this.isPickupSelected() ? this.shopStatus.deliveryDatesPickup() : this.shopStatus.deliveryDatesInsep();
+  }
+
+  private getAvailableDeliverySlots(): { value: string; label: string }[] {
+    const now = Date.now() - 60_000;
+    return this.rawSlotsForMode()
+      .filter((iso) => this.slotStartMs(iso) >= now)
+      .map((value) => ({ value, label: this.formatSlotLabel(value) }));
+  }
+
+  private hasFutureSlots(slots: string[]): boolean {
+    const now = Date.now() - 60_000;
+    return slots.some((iso) => this.slotStartMs(iso) >= now);
+  }
+
+  private canOpenCheckout(): boolean {
+    return (
+      this.hasFutureSlots(this.shopStatus.deliveryDatesInsep()) ||
+      this.hasFutureSlots(this.shopStatus.deliveryDatesPickup())
+    );
   }
 
   private refreshDeliveryOptions(): void {
-    this.availableDeliveryDates = this.getAvailableDeliveryDates();
+    this.availableDeliveryDates = this.getAvailableDeliverySlots();
     if (this.availableDeliveryDates.length > 0) {
       const allowed = new Set(this.availableDeliveryDates.map((o) => o.value));
       if (!this.deliveryDate || !allowed.has(this.deliveryDate)) {
@@ -427,16 +460,16 @@ export class CartComponent implements OnInit, OnDestroy {
   }
 
   hasDeliverySlots(): boolean {
-    return this.getAvailableDeliveryDates().length > 0;
+    return this.getAvailableDeliverySlots().length > 0;
   }
 
   checkoutButtonDisabled(): boolean {
-    return !this.shopStatus.salesOpen() || !this.hasDeliverySlots();
+    return !this.shopStatus.salesOpen() || !this.canOpenCheckout();
   }
 
   checkoutButtonText(): string {
     if (!this.shopStatus.salesOpen()) return 'Ventes fermées';
-    if (!this.hasDeliverySlots()) return 'Aucune date de livraison';
+    if (!this.canOpenCheckout()) return 'Aucun créneau disponible';
     return 'Passer commande';
   }
 
@@ -466,8 +499,8 @@ export class CartComponent implements OnInit, OnDestroy {
       this.toast.warning('Les ventes sont actuellement fermées');
       return;
     }
-    if (!this.hasDeliverySlots()) {
-      this.toast.warning('Aucune date de livraison disponible pour le moment');
+    if (!this.canOpenCheckout()) {
+      this.toast.warning('Aucun créneau de livraison ou de retrait disponible pour le moment');
       return;
     }
     if (!this.auth.isLoggedIn()) {
@@ -517,8 +550,8 @@ export class CartComponent implements OnInit, OnDestroy {
           throw new Error('Mode de livraison requis');
         }
         if (!this.deliveryDate) {
-          this.toast.warning('Veuillez choisir une date de livraison');
-          throw new Error('Date requise');
+          this.toast.warning('Veuillez choisir un créneau');
+          throw new Error('Créneau requis');
         }
         const { cartItems, boxes } = this.cartService.getItemsForCheckout();
         try {
@@ -561,7 +594,7 @@ export class CartComponent implements OnInit, OnDestroy {
       return;
     }
     if (!this.deliveryDate) {
-      this.toast.warning('Veuillez choisir une date de livraison');
+      this.toast.warning('Veuillez choisir un créneau');
       return;
     }
 

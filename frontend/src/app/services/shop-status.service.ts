@@ -6,7 +6,8 @@ import { tap } from 'rxjs';
 interface ShopStatusResponse {
   salesOpen: boolean;
   nextOpeningAt: string | null;
-  deliveryDates: string[];
+  deliveryDatesInsep: string[];
+  deliveryDatesPickup: string[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -14,7 +15,8 @@ export class ShopStatusService {
   private apiUrl = `${environment.apiUrl}/api`;
   salesOpen = signal(true);
   nextOpeningAt = signal<string | null>(null);
-  deliveryDates = signal<string[]>([]);
+  deliveryDatesInsep = signal<string[]>([]);
+  deliveryDatesPickup = signal<string[]>([]);
 
   constructor(private http: HttpClient) {}
 
@@ -23,28 +25,41 @@ export class ShopStatusService {
       tap((res) => {
         this.salesOpen.set(res.salesOpen);
         this.nextOpeningAt.set(res.nextOpeningAt ?? null);
-        this.deliveryDates.set(this.normalizeDeliveryDates(res.deliveryDates, this.deliveryDates()));
+        this.deliveryDatesInsep.set(this.normalizeSlotList(res.deliveryDatesInsep));
+        this.deliveryDatesPickup.set(this.normalizeSlotList(res.deliveryDatesPickup));
       })
     );
   }
 
-  updateStatus(salesOpen: boolean, nextOpeningAt?: string | null, deliveryDates?: string[]) {
-    const requestedDates = this.normalizeDeliveryDates(deliveryDates, this.deliveryDates());
+  updateStatus(
+    salesOpen: boolean,
+    nextOpeningAt?: string | null,
+    deliveryDatesInsep?: string[],
+    deliveryDatesPickup?: string[]
+  ) {
+    const insep = this.normalizeSlotList(
+      deliveryDatesInsep !== undefined ? deliveryDatesInsep : this.deliveryDatesInsep()
+    );
+    const pickup = this.normalizeSlotList(
+      deliveryDatesPickup !== undefined ? deliveryDatesPickup : this.deliveryDatesPickup()
+    );
     return this.http.patch<ShopStatusResponse>(`${this.apiUrl}/admin/shop/status`, {
       salesOpen,
       nextOpeningAt: nextOpeningAt ?? null,
-      deliveryDates: requestedDates
+      deliveryDatesInsep: insep,
+      deliveryDatesPickup: pickup
     }).pipe(
       tap((res) => {
         this.salesOpen.set(res.salesOpen);
         this.nextOpeningAt.set(res.nextOpeningAt ?? null);
-        this.deliveryDates.set(this.normalizeDeliveryDates(res.deliveryDates, requestedDates));
+        this.deliveryDatesInsep.set(this.normalizeSlotList(res.deliveryDatesInsep));
+        this.deliveryDatesPickup.set(this.normalizeSlotList(res.deliveryDatesPickup));
       })
     );
   }
 
-  private normalizeDeliveryDates(input: string[] | undefined | null, fallback: string[]): string[] {
-    const base = input && input.length ? input : (fallback.length ? fallback : []);
-    return [...new Set(base.map((d) => d.trim()).filter((d) => d.length > 0))].sort();
+  private normalizeSlotList(input: string[] | undefined | null): string[] {
+    if (!input?.length) return [];
+    return [...new Set(input.map((d) => d.trim()).filter((d) => d.length > 0))].sort();
   }
 }

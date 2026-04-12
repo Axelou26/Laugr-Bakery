@@ -4,7 +4,6 @@ import com.cookieshop.entity.Order;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,7 +23,7 @@ public class OrderDto {
     private Order.OrderStatus status;
     private LocalDateTime createdAt;
     private String shippingAddress;
-    private LocalDate deliveryDate;
+    private LocalDateTime deliveryDate;
     private Order.PaymentMethod paymentMethod;
     private String paypalOrderId;
 

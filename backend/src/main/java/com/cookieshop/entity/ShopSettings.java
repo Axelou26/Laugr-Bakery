@@ -29,7 +29,12 @@ public class ShopSettings {
 
     private LocalDateTime nextOpeningAt;
 
-    @Column(nullable = false, length = 600)
+    @Column(nullable = false, length = 1200)
     @Builder.Default
     private String deliveryDatesCsv = "";
+
+    /** Créneaux de retrait « à emporter » (ISO local date-time, CSV). */
+    @Column(nullable = false, length = 1200)
+    @Builder.Default
+    private String deliveryPickupDatesCsv = "";
 }

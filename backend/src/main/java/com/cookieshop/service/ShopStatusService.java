@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -40,19 +41,17 @@ public class ShopStatusService {
         return getSettings().getNextOpeningAt();
     }
 
+    /**
+     * Créneaux livraison INSEP (date + heure). Anciennes valeurs « date seule » (yyyy-MM-dd) → minuit local.
+     */
     @Transactional(readOnly = true)
-    public List<LocalDate> getDeliveryDates() {
-        String raw = getSettings().getDeliveryDatesCsv();
-        if (raw == null || raw.isBlank()) {
-            return List.of();
-        }
-        return Arrays.stream(raw.split(","))
-                .map(String::trim)
-                .filter(v -> !v.isBlank())
-                .map(LocalDate::parse)
-                .distinct()
-                .sorted(Comparator.naturalOrder())
-                .collect(Collectors.toList());
+    public List<LocalDateTime> getInsepDeliverySlots() {
+        return parseSlotsCsv(getSettings().getDeliveryDatesCsv());
+    }
+
+    @Transactional(readOnly = true)
+    public List<LocalDateTime> getPickupDeliverySlots() {
+        return parseSlotsCsv(getSettings().getDeliveryPickupDatesCsv());
     }
 
     @Transactional
@@ -63,20 +62,61 @@ public class ShopStatusService {
     }
 
     @Transactional
-    public void setDeliveryDates(List<LocalDate> deliveryDates) {
+    public void setInsepDeliverySlots(List<LocalDateTime> slots) {
         ShopSettings settings = getSettings();
-        String csv = (deliveryDates == null ? List.<LocalDate>of() : deliveryDates).stream()
-                .distinct()
-                .sorted(Comparator.naturalOrder())
-                .map(LocalDate::toString)
-                .collect(Collectors.joining(","));
-        settings.setDeliveryDatesCsv(csv);
+        settings.setDeliveryDatesCsv(slotsToCsv(slots));
+        shopSettingsRepository.save(settings);
+    }
+
+    @Transactional
+    public void setPickupDeliverySlots(List<LocalDateTime> slots) {
+        ShopSettings settings = getSettings();
+        settings.setDeliveryPickupDatesCsv(slotsToCsv(slots));
         shopSettingsRepository.save(settings);
     }
 
     @Transactional
     public void ensureInitialized() {
         getSettings();
+    }
+
+    private static List<LocalDateTime> parseSlotsCsv(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(raw.split(","))
+                .map(String::trim)
+                .filter(v -> !v.isBlank())
+                .map(ShopStatusService::parseSingleSlot)
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .collect(Collectors.toList());
+    }
+
+    public static LocalDateTime parseDeliverySlotString(String s) {
+        try {
+            if (s.length() == 10) {
+                return LocalDate.parse(s).atStartOfDay();
+            }
+            return LocalDateTime.parse(s);
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException("Créneau invalide (attendu yyyy-MM-dd ou yyyy-MM-ddTHH:mm) : " + s);
+        }
+    }
+
+    private static LocalDateTime parseSingleSlot(String s) {
+        return parseDeliverySlotString(s);
+    }
+
+    private static String slotsToCsv(List<LocalDateTime> slots) {
+        if (slots == null || slots.isEmpty()) {
+            return "";
+        }
+        return slots.stream()
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .map(LocalDateTime::toString)
+                .collect(Collectors.joining(","));
     }
 
     private ShopSettings getSettings() {
@@ -90,6 +130,7 @@ public class ShopStatusService {
                         .salesOpen(true)
                         .nextOpeningAt(null)
                         .deliveryDatesCsv("")
+                        .deliveryPickupDatesCsv("")
                         .build()
         );
         return Objects.requireNonNull(created);

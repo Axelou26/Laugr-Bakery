@@ -17,7 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -93,8 +93,8 @@ public class OrderController {
             @NotBlank(message = "Le mode de livraison ou de retrait est obligatoire")
             String shippingAddress,
 
-            @NotNull(message = "La date de livraison est obligatoire")
-            LocalDate deliveryDate,
+            @NotNull(message = "La date et l'heure de livraison sont obligatoires")
+            LocalDateTime deliveryDate,
 
             @NotNull(message = "La méthode de paiement est obligatoire")
             Order.PaymentMethod paymentMethod

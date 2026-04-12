@@ -22,7 +22,8 @@ public class ShopController {
         Map<String, Object> payload = new HashMap<>();
         payload.put("salesOpen", shopStatusService.isSalesOpen());
         payload.put("nextOpeningAt", shopStatusService.getNextOpeningAt());
-        payload.put("deliveryDates", shopStatusService.getDeliveryDates().stream().map(Object::toString).collect(Collectors.toList()));
+        payload.put("deliveryDatesInsep", shopStatusService.getInsepDeliverySlots().stream().map(Object::toString).collect(Collectors.toList()));
+        payload.put("deliveryDatesPickup", shopStatusService.getPickupDeliverySlots().stream().map(Object::toString).collect(Collectors.toList()));
         return ResponseEntity.ok(payload);
     }
 }
