@@ -35,7 +35,7 @@ declare global {
         <div class="empty-actions">
           <a routerLink="/cookies" class="btn-primary">Découvrir nos cookies</a>
           <a routerLink="/box" class="btn-secondary">📦 Composer une box</a>
-          <a routerLink="/bol" class="btn-secondary">🥣 Composer des bols</a>
+          <a routerLink="/bol" class="btn-secondary">🥣 Découvrir nos bols</a>
         </div>
       </div>
     } @else {

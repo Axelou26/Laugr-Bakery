@@ -50,15 +50,6 @@ import { ShopStatusService } from '../../services/shop-status.service';
             >
               Composer ma box de 6 cookies
             </a>
-
-            <a
-              routerLink="/bol"
-              class="btn-add btn-add-secondary"
-              [class.btn-add-disabled]="!shopStatus.salesOpen()"
-              aria-disabled="!shopStatus.salesOpen()"
-            >
-              Composer mes bols
-            </a>
           </div>
         </div>
       </article>
@@ -186,13 +177,6 @@ import { ShopStatusService } from '../../services/shop-status.service';
       opacity: 0.7;
       cursor: not-allowed;
       pointer-events: none;
-    }
-    .btn-add-secondary {
-      background: linear-gradient(135deg, var(--color-border) 0%, #d9d9d9 100%);
-      color: var(--color-text);
-    }
-    .btn-add-secondary:hover:not(:disabled) {
-      box-shadow: 0 6px 20px rgba(0,0,0,0.12);
     }
     .btn-add:hover:not(:disabled) {
       transform: translateY(-2px);

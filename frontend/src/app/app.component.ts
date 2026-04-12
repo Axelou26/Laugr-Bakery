@@ -21,7 +21,7 @@ import { ToastComponent } from './components/toast/toast.component';
         <div class="nav-links" [class.open]="menuOpen()" (click)="closeMenu()">
           <a routerLink="/cookies" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">Nos cookies</a>
           <a routerLink="/box" routerLinkActive="active">📦 Ma box</a>
-          <a routerLink="/bol" routerLinkActive="active">🥣 Mes bols</a>
+          <a routerLink="/bol" routerLinkActive="active">🥣 Nos bols</a>
           <a routerLink="/panier" routerLinkActive="active" class="nav-cart">
             Panier
             @if (cart.totalItems() > 0) {
