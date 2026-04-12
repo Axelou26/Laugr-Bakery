@@ -3,10 +3,56 @@ import { CartEntry, BoxItem } from '../models/cookie.model';
 
 const BOX_SIZE = 6;
 const BOX_PRICE = 18;
+const CART_STORAGE_KEY = 'laugr-cart-v1';
+/** Durée de conservation du panier dans le navigateur (dernière modification). */
+const CART_TTL_MS = 60 * 60 * 1000;
+
+function loadPersistedCart(): CartEntry[] {
+  if (typeof localStorage === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as { savedAt?: number; entries?: CartEntry[] };
+    if (
+      typeof parsed?.savedAt !== 'number' ||
+      !Array.isArray(parsed.entries)
+    ) {
+      localStorage.removeItem(CART_STORAGE_KEY);
+      return [];
+    }
+    if (Date.now() - parsed.savedAt > CART_TTL_MS) {
+      localStorage.removeItem(CART_STORAGE_KEY);
+      return [];
+    }
+    return parsed.entries;
+  } catch {
+    return [];
+  }
+}
+
+function writePersistedCart(entries: CartEntry[]): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    if (entries.length === 0) {
+      localStorage.removeItem(CART_STORAGE_KEY);
+      return;
+    }
+    localStorage.setItem(
+      CART_STORAGE_KEY,
+      JSON.stringify({ savedAt: Date.now(), entries })
+    );
+  } catch {
+    /* quota navigateur, mode privé strict, etc. */
+  }
+}
 
 @Injectable({ providedIn: 'root' })
 export class CartService {
-  private cartEntries = signal<CartEntry[]>([]);
+  private cartEntries = signal<CartEntry[]>(loadPersistedCart());
+
+  private persist(): void {
+    writePersistedCart(this.cartEntries());
+  }
 
   items = this.cartEntries.asReadonly();
 
@@ -49,6 +95,7 @@ export class CartService {
           }
         ];
     this.cartEntries.set(updated);
+    this.persist();
   }
 
   addBox(items: BoxItem[]) {
@@ -59,6 +106,7 @@ export class CartService {
       ...entries,
       { type: 'box', boxId, items, subtotal: BOX_PRICE }
     ]);
+    this.persist();
     return true;
   }
 
@@ -68,12 +116,14 @@ export class CartService {
         (e) => !(e.type === 'cookie' && e.cookieId === cookieId)
       )
     );
+    this.persist();
   }
 
   removeBox(boxId: string) {
     this.cartEntries.update((entries) =>
       entries.filter((e) => !(e.type === 'box' && e.boxId === boxId))
     );
+    this.persist();
   }
 
   updateQuantity(cookieId: number, quantity: number) {
@@ -88,10 +138,12 @@ export class CartService {
           : e
       )
     );
+    this.persist();
   }
 
   clear() {
     this.cartEntries.set([]);
+    this.persist();
   }
 
   getQuantityForCookie(cookieId: number): number {
