@@ -8,6 +8,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -18,6 +20,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ShopStatusService {
+    /** Fuseau utilisé pour interpréter les dates ISO avec offset (Z, +02:00) envoyées par le client. */
+    public static final ZoneId SHOP_ZONE = ZoneId.of("Europe/Paris");
     private static final long SETTINGS_ID = 1L;
     private final ShopSettingsRepository shopSettingsRepository;
 
@@ -102,6 +106,23 @@ public class ShopStatusService {
         } catch (DateTimeParseException ex) {
             throw new IllegalArgumentException("Créneau invalide (attendu yyyy-MM-dd ou yyyy-MM-ddTHH:mm) : " + s);
         }
+    }
+
+    /**
+     * Parse la date de livraison reçue en JSON (souvent ISO-8601). Accepte les formes avec Z ou décalage,
+     * converties en heure locale boutique pour comparaison avec les créneaux configurés.
+     */
+    public static LocalDateTime parseClientDeliveryDate(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException("La date et l'heure de livraison sont obligatoires");
+        }
+        String s = raw.trim();
+        try {
+            return OffsetDateTime.parse(s).atZoneSameInstant(SHOP_ZONE).toLocalDateTime();
+        } catch (DateTimeParseException ignored) {
+            // date/heure « naïves » (sans fuseau), comme les créneaux renvoyés par l’API
+        }
+        return parseDeliverySlotString(s);
     }
 
     private static LocalDateTime parseSingleSlot(String s) {

@@ -518,6 +518,19 @@ export class CartComponent implements OnInit, OnDestroy {
     this.paypalRendered = false;
   }
 
+  /** Message renvoyé par l’API (`{ message }`) ou repli lisible pour le toast. */
+  private checkoutApiErrorMessage(err: unknown): string {
+    const e = err as { error?: { message?: string }; message?: string; status?: number };
+    const fromBody = e?.error?.message;
+    if (typeof fromBody === 'string' && fromBody.trim().length > 0) {
+      return fromBody;
+    }
+    if (typeof e?.message === 'string' && e.message.trim().length > 0) {
+      return e.message;
+    }
+    return 'Erreur lors de la création de la commande';
+  }
+
   onPaymentChange(method: PaymentMethod) {
     this.paymentMethod = method;
     this.schedulePayPalButtonIfNeeded();
@@ -560,8 +573,7 @@ export class CartComponent implements OnInit, OnDestroy {
           );
           return order?.paypalOrderId || '';
         } catch (err: unknown) {
-          const e = err as { error?: { message?: string }; message?: string };
-          this.toast.error(e.error?.message || e.message || 'Erreur lors de la création');
+          this.toast.error(this.checkoutApiErrorMessage(err));
           throw err;
         }
       },
@@ -612,10 +624,11 @@ export class CartComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.placing = false;
-        if (err.status === 401) {
+        const status = (err as { status?: number }).status;
+        if (status === 401) {
           this.router.navigate(['/connexion'], { queryParams: { returnUrl: '/panier' } });
         } else {
-          this.toast.error(err.error?.message || err.message || 'Erreur lors de la commande');
+          this.toast.error(this.checkoutApiErrorMessage(err));
         }
       }
     });

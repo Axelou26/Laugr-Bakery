@@ -6,9 +6,9 @@ import com.cookieshop.dto.OrderDto;
 import com.cookieshop.entity.Order;
 import com.cookieshop.service.OrderService;
 import com.cookieshop.service.PayPalService;
+import com.cookieshop.service.ShopStatusService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,14 +17,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:4200")
 public class OrderController {
 
     private final OrderService orderService;
@@ -49,7 +47,10 @@ public class OrderController {
             throw new IllegalStateException("Authentification requise");
         }
         Long userId = (Long) authentication.getPrincipal();
-        OrderDto order = orderService.createOrder(userId, request.cartItems(), request.boxes(), request.shippingAddress(), request.deliveryDate(), request.paymentMethod());
+        List<CartItemDto> cartItems = request.cartItems() != null ? request.cartItems() : List.of();
+        List<BoxOrderDto> boxes = request.boxes() != null ? request.boxes() : List.of();
+        var deliveryDate = ShopStatusService.parseClientDeliveryDate(request.deliveryDate());
+        OrderDto order = orderService.createOrder(userId, cartItems, boxes, request.shippingAddress(), deliveryDate, request.paymentMethod());
         return ResponseEntity.status(HttpStatus.CREATED).body(order);
     }
 
@@ -93,8 +94,8 @@ public class OrderController {
             @NotBlank(message = "Le mode de livraison ou de retrait est obligatoire")
             String shippingAddress,
 
-            @NotNull(message = "La date et l'heure de livraison sont obligatoires")
-            LocalDateTime deliveryDate,
+            @NotBlank(message = "La date et l'heure de livraison sont obligatoires")
+            String deliveryDate,
 
             @NotNull(message = "La méthode de paiement est obligatoire")
             Order.PaymentMethod paymentMethod
