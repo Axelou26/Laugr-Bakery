@@ -27,5 +27,13 @@ public class SchemaPatchRunner implements CommandLineRunner {
         } catch (Exception e) {
             log.warn("Impossible d'appliquer le patch schema shop_settings (colonne retrait) : {}", e.getMessage());
         }
+        try {
+            int n = jdbcTemplate.update("UPDATE bowls SET price = 10.00 WHERE price = 9.00");
+            if (n > 0) {
+                log.info("Tarif des bols : {} ligne(s) passée(s) de 9,00 € à 10,00 €", n);
+            }
+        } catch (Exception e) {
+            log.warn("Impossible d'appliquer le patch tarif bols (9 → 10 €) : {}", e.getMessage());
+        }
     }
 }

@@ -516,7 +516,7 @@ export class AdminCookiesComponent implements OnInit {
         name: '',
         description: '',
         category: '',
-        price: 9,
+        price: 10,
         stockQuantity: 100,
         available: true,
         imageUrl: ''
