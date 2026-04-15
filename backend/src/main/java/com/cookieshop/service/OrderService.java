@@ -28,6 +28,7 @@ public class OrderService {
     private final PayPalService payPalService;
     private final ShopStatusService shopStatusService;
     private final OrderNotificationPublisher orderNotificationPublisher;
+    private final OrderEmailNotificationService orderEmailNotificationService;
 
     private static final int BOX_SIZE = 6;
     private static final BigDecimal BOX_PRICE = new BigDecimal("18.00");
@@ -150,6 +151,9 @@ public class OrderService {
         ensureOrderGraphLoaded(order);
         OrderDto dto = toDto(order);
         orderNotificationPublisher.notifyNewOrder(dto);
+        if (paymentMethod == Order.PaymentMethod.PAY_ON_DELIVERY) {
+            orderEmailNotificationService.sendNewOrderNotification(dto);
+        }
         return dto;
     }
 
@@ -177,6 +181,7 @@ public class OrderService {
         ensureOrderGraphLoaded(order);
         OrderDto dto = toDto(order);
         orderNotificationPublisher.notifyOrderStatusToUser(dto);
+        orderEmailNotificationService.sendNewOrderNotification(dto);
         return dto;
     }
 

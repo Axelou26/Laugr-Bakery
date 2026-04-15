@@ -11,6 +11,10 @@ spring:
     console:
       enabled: false
 
+# Notifications (e-mail « nouvelle commande » vers app.notifications.owner-email) :
+# sur l’hébergeur, définir au minimum MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD
+# (ex. iCloud : smtp.mail.me.com, port 587, identifiant = e-mail complet, mot de passe d’application).
+
 # Même clés que sur developer.paypal.com (Render : variables d’environnement).
 paypal:
   client-id: ${PAYPAL_CLIENT_ID:}

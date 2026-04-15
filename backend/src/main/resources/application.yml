@@ -28,14 +28,30 @@ spring:
       enabled: true
       path: /h2-console
 
+  # Optionnel : sans MAIL_HOST, aucun e-mail notification (commandes enregistrées normalement).
+  # iCloud : MAIL_HOST=smtp.mail.me.com, MAIL_PORT=587, compte iCloud + mot de passe d’appli.
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 server:
   # Render / Railway injectent PORT ; en local on garde 8081
   port: ${PORT:8081}
 
-# Upload d'images
+# Upload d'images + notifications e-mail (adresse destinataire pour les nouvelles commandes).
 app:
   upload-dir: uploads
   base-url: http://localhost:8081
+  notifications:
+    owner-email: ${OWNER_NOTIFICATION_EMAIL:laura.judooo@icloud.com}
 
 # CORS — en prod (Render) : variable d’environnement cors.allowed-origins (URLs séparées par des virgules)
 cors:
