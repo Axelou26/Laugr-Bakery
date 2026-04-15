@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -62,15 +61,14 @@ public class OrderService {
                     ? "Aucun créneau de retrait n'est configuré pour le moment."
                     : "Aucun créneau de livraison INSEP n'est configuré pour le moment.");
         }
-        LocalDateTime canonicalSlot = resolveAgainstAllowedSlots(deliveryDate, allowedSlots);
-        if (canonicalSlot == null) {
+        if (!allowedSlots.contains(deliveryDate)) {
             throw new IllegalArgumentException("Ce créneau n'est pas disponible pour le mode choisi");
         }
 
         Order order = Order.builder()
                 .user(user)
                 .shippingAddress(shippingAddress)
-                .deliveryDate(canonicalSlot)
+                .deliveryDate(deliveryDate)
                 .paymentMethod(paymentMethod)
                 .status(Order.OrderStatus.PENDING)
                 .totalAmount(BigDecimal.ZERO)
@@ -255,30 +253,5 @@ public class OrderService {
     /** Aligné sur les libellés du panier : retrait si l'adresse contient « À emporter ». */
     private static boolean isPickupFulfillment(String shippingAddress) {
         return shippingAddress != null && shippingAddress.contains("À emporter");
-    }
-
-    /**
-     * Ramène la date demandée à un créneau exactement configuré (tolérance : même minute civile),
-     * pour éviter les rejets dus aux secondes/nanos ou aux conversions ISO.
-     */
-    private static LocalDateTime resolveAgainstAllowedSlots(LocalDateTime requested, List<LocalDateTime> allowed) {
-        if (requested == null || allowed == null || allowed.isEmpty()) {
-            return null;
-        }
-        return allowed.stream()
-                .filter(slot -> sameWallClockMinute(slot, requested))
-                .findFirst()
-                .orElse(null);
-    }
-
-    private static boolean sameWallClockMinute(LocalDateTime a, LocalDateTime b) {
-        if (a == null || b == null) {
-            return false;
-        }
-        return a.getYear() == b.getYear()
-                && Objects.equals(a.getMonth(), b.getMonth())
-                && a.getDayOfMonth() == b.getDayOfMonth()
-                && a.getHour() == b.getHour()
-                && a.getMinute() == b.getMinute();
     }
 }

@@ -80,11 +80,7 @@ public class PayPalService {
                 throw new RuntimeException("Erreur PayPal");
             }
         }
-        String body = response.getBody();
-        String snippet = body == null ? "" : (body.length() > 800 ? body.substring(0, 800) + "…" : body);
-        log.warn("PayPal create order failed: {} — {}", response.getStatusCode(), snippet);
-        throw new RuntimeException("Échec création commande PayPal (" + response.getStatusCode() + ")"
-                + (snippet.isEmpty() ? "" : " : " + snippet));
+        throw new RuntimeException("Échec création commande PayPal: " + response.getStatusCode());
     }
 
     public boolean captureOrder(String paypalOrderId) {

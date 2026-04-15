@@ -2,7 +2,6 @@ package com.cookieshop.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,16 +21,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("message", message.isEmpty() ? "Données invalides" : message));
-    }
-
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, String>> handleUnreadable(HttpMessageNotReadableException ex) {
-        Throwable cause = ex.getMostSpecificCause();
-        String detail = cause != null && cause.getMessage() != null ? cause.getMessage() : ex.getMessage();
-        String message = (detail != null && !detail.isBlank())
-                ? "Corps JSON invalide ou types inattendus : " + detail
-                : "Corps JSON invalide";
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", message));
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
