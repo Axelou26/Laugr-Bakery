@@ -13,6 +13,8 @@ COPY --from=build /app/target/backend-1.0.0.jar app.jar
 USER appuser
 EXPOSE 8081
 # Profil prod = PostgreSQL (Neon) via application-prod.yml ; Render fournit SPRING_DATASOURCE_* .
+# APP_BASE_URL (optionnel) : URL publique de l’API si la détection via en-têtes proxy ne suffit pas.
 ENV SPRING_PROFILES_ACTIVE=prod
+ENV APP_UPLOAD_DIR=/app/uploads
 # Render définit PORT ; application.yml utilise ${PORT:8081}
 ENTRYPOINT ["java", "-jar", "app.jar"]

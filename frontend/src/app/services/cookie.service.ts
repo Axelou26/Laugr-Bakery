@@ -1,8 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { Cookie } from '../models/cookie.model';
 import { environment } from '../../environments/environment';
+import { withResolvedImageUrl, withResolvedImageUrlList } from '../utils/media-url';
 
 export interface CookieSearchParams {
   search?: string;
@@ -33,7 +35,9 @@ export class CookieService {
     if (params.minPrice != null) httpParams = httpParams.set('minPrice', params.minPrice);
     if (params.maxPrice != null) httpParams = httpParams.set('maxPrice', params.maxPrice);
     if (params.availableOnly) httpParams = httpParams.set('availableOnly', 'true');
-    return this.http.get<Cookie[]>(this.apiUrl, { params: httpParams });
+    return this.http
+      .get<Cookie[]>(this.apiUrl, { params: httpParams })
+      .pipe(map(withResolvedImageUrlList));
   }
 
   getCategories(): Observable<string[]> {
@@ -41,19 +45,21 @@ export class CookieService {
   }
 
   getLowStock(threshold = 10): Observable<Cookie[]> {
-    return this.http.get<Cookie[]>(`${this.apiUrl}/low-stock`, { params: { threshold } });
+    return this.http
+      .get<Cookie[]>(`${this.apiUrl}/low-stock`, { params: { threshold } })
+      .pipe(map(withResolvedImageUrlList));
   }
 
   getById(id: number): Observable<Cookie> {
-    return this.http.get<Cookie>(`${this.apiUrl}/${id}`);
+    return this.http.get<Cookie>(`${this.apiUrl}/${id}`).pipe(map(withResolvedImageUrl));
   }
 
   create(cookie: Partial<Cookie>): Observable<Cookie> {
-    return this.http.post<Cookie>(this.apiUrl, cookie);
+    return this.http.post<Cookie>(this.apiUrl, cookie).pipe(map(withResolvedImageUrl));
   }
 
   update(id: number, cookie: Partial<Cookie>): Observable<Cookie> {
-    return this.http.put<Cookie>(`${this.apiUrl}/${id}`, cookie);
+    return this.http.put<Cookie>(`${this.apiUrl}/${id}`, cookie).pipe(map(withResolvedImageUrl));
   }
 
   delete(id: number): Observable<void> {

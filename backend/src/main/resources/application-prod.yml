@@ -1,5 +1,13 @@
 # Activé sur Render via SPRING_PROFILES_ACTIVE=prod (voir Dockerfile).
 # Supprime toute ambiguïté H2 / PostgreSQL et fixe le dialecte Hibernate.
+#
+# Images : fichiers sous upload-dir ; les URLs renvoyées à l’upload utilisent APP_BASE_URL si défini,
+# sinon l’origine dérivée de la requête (nécessite forward-headers derrière Render).
+# Le disque conteneur est éphémère sauf disque persistant Render — pour des fichiers durables, prévoir S3 / Cloudinary.
+
+server:
+  forward-headers-strategy: framework
+
 spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL}
@@ -20,3 +28,9 @@ paypal:
   client-id: ${PAYPAL_CLIENT_ID:}
   client-secret: ${PAYPAL_CLIENT_SECRET:}
   mode: ${PAYPAL_MODE:sandbox}
+
+app:
+  # Chemin absolu dans l’image Docker (voir Dockerfile) ; surcharge possible via APP_UPLOAD_DIR.
+  upload-dir: ${APP_UPLOAD_DIR:/app/uploads}
+  # Optionnel : URL publique de l’API (ex. https://xxx.onrender.com). Si vide, dérivée de la requête HTTP.
+  base-url: ${APP_BASE_URL:}

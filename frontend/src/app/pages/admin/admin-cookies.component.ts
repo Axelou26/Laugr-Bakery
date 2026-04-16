@@ -8,6 +8,7 @@ import { Cookie } from '../../models/cookie.model';
 import { Bowl } from '../../models/bowl.model';
 import { FormsModule } from '@angular/forms';
 import { ImageCropperComponent, ImageCroppedEvent } from 'ngx-image-cropper';
+import { resolveMediaUrl } from '../../utils/media-url';
 
 @Component({
   selector: 'app-admin-cookies',
@@ -571,8 +572,9 @@ export class AdminCookiesComponent implements OnInit {
     this.cropUploading = true;
     this.imageUpload.upload(this.lastCroppedBlob).subscribe({
       next: (res) => {
-        if (this.pendingCropFor === 'add') this.addForm.imageUrl = res.url;
-        else this.editForm.imageUrl = res.url;
+        const url = resolveMediaUrl(res.url) ?? res.url;
+        if (this.pendingCropFor === 'add') this.addForm.imageUrl = url;
+        else this.editForm.imageUrl = url;
         if (this.cropFileInput) this.cropFileInput.value = '';
         this.cancelCrop();
         this.cropUploading = false;
