@@ -1,0 +1,23 @@
+name: render-keepalive
+
+on:
+  schedule:
+    - cron: "*/10 * * * *" # toutes les 10 minutes
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping Render service (keepalive)
+        env:
+          PING_URL: https://laugr-bakery.onrender.com
+        run: |
+          set -e
+          code="$(curl -L -sS -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 20 "$PING_URL" || true)"
+          if [ "$code" = "000" ] || [ -z "$code" ]; then
+            echo "Ping failed (no HTTP response) for $PING_URL"
+            exit 1
+          fi
+          echo "Ping OK: HTTP $code for $PING_URL"
