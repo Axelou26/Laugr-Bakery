@@ -16,4 +16,9 @@ public class RootController {
                 "hint", "Frontend sur Netlify ; API sous /api/..."
         );
     }
+
+    @GetMapping("/health")
+    public Map<String, String> health() {
+        return Map.of("status", "ok");
+    }
 }
