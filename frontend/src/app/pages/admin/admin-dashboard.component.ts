@@ -104,6 +104,11 @@ import { ToastService } from '../../services/toast.service';
         <h3>Gérer les commandes</h3>
         <p>Voir et mettre à jour le statut des commandes</p>
       </a>
+      <a routerLink="/admin/codes-promo" class="dashboard-card">
+        <span class="card-icon">🏷️</span>
+        <h3>Codes promo</h3>
+        <p>Créer des remises pour le panier client</p>
+      </a>
     </div>
   `,
   styles: [`

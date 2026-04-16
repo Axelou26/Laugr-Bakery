@@ -13,6 +13,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
           <a routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Tableau de bord</a>
           <a routerLink="/admin/cookies" routerLinkActive="active">Cookies</a>
           <a routerLink="/admin/commandes" routerLinkActive="active">Commandes</a>
+          <a routerLink="/admin/codes-promo" routerLinkActive="active">Codes promo</a>
         </nav>
       </aside>
       <div class="admin-content">

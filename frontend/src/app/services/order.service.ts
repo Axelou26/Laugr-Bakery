@@ -23,6 +23,8 @@ export interface Order {
   deliveryDate?: string;
   paymentMethod?: PaymentMethod;
   paypalOrderId?: string;
+  discountAmount?: number;
+  appliedPromoCode?: string | null;
 }
 
 export interface PayPalConfig {
@@ -51,14 +53,16 @@ export class OrderService {
     boxes: { items: { cookieId: number; quantity: number }[] }[],
     shippingAddress: string,
     deliveryDate: string,
-    paymentMethod: PaymentMethod
+    paymentMethod: PaymentMethod,
+    promoCode?: string | null
   ): Observable<Order> {
     return this.http.post<Order>(this.apiUrl, {
       cartItems: cartItems ?? [],
       boxes: boxes ?? [],
       shippingAddress,
       deliveryDate,
-      paymentMethod
+      paymentMethod,
+      promoCode: promoCode?.trim() || null
     });
   }
 

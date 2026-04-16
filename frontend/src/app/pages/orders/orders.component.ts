@@ -42,6 +42,14 @@ import { OrderService, Order } from '../../services/order.service';
                 </li>
               }
             </ul>
+            @if (order.discountAmount && order.discountAmount > 0) {
+              <p class="promo-line">
+                Code <strong>{{ order.appliedPromoCode || '—' }}</strong> : −{{
+                  order.discountAmount | number:'1.2-2'
+                }}
+                €
+              </p>
+            }
             <div class="order-total">
               <span>Total</span>
               <strong>{{ order.totalAmount | number:'1.2-2' }} €</strong>
@@ -151,6 +159,11 @@ import { OrderService, Order } from '../../services/order.service';
     .item-name { flex: 1; }
     .item-qty { color: var(--color-text-muted); }
     .item-price { font-weight: 600; }
+    .promo-line {
+      font-size: 0.9rem;
+      color: #0f7a3e;
+      margin: 0 0 0.5rem;
+    }
     .order-total {
       display: flex;
       justify-content: space-between;

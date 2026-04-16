@@ -51,6 +51,27 @@ public class Order {
 
     private String paypalOrderId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "promo_code_id")
+    private PromoCode promoCode;
+
+    /** Montant de la remise (jamais négatif). */
+    @Column(precision = 10, scale = 2)
+    @Builder.Default
+    private BigDecimal discountAmount = BigDecimal.ZERO;
+
+    /** Libellé du code appliqué (conservé si le code promo est supprimé plus tard). */
+    @Column(length = 64)
+    private String appliedPromoCode;
+
+    /**
+     * Pour PayPal : la remise sur quota n'est comptabilisée qu'après capture réussie.
+     * Pour paiement à la livraison : enregistré dès la création de commande.
+     */
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean promoRedemptionRecorded = false;
+
     public enum OrderStatus {
         PENDING,
         CONFIRMED,

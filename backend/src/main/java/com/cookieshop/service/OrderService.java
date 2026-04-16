@@ -29,13 +29,15 @@ public class OrderService {
     private final ShopStatusService shopStatusService;
     private final OrderNotificationPublisher orderNotificationPublisher;
     private final OrderEmailNotificationService orderEmailNotificationService;
+    private final PromoCodeService promoCodeService;
 
     private static final int BOX_SIZE = 6;
     private static final BigDecimal BOX_PRICE = new BigDecimal("18.00");
     /** Transaction ouverte pendant tout le flux (dont appels PayPal distants) pour que toDto voie le graphe JPA. */
     @Transactional(rollbackFor = Exception.class)
     public OrderDto createOrder(Long userId, List<CartItemDto> cartItems, List<BoxOrderDto> boxes,
-                               String shippingAddress, LocalDateTime deliveryDate, Order.PaymentMethod paymentMethod) {
+                               String shippingAddress, LocalDateTime deliveryDate, Order.PaymentMethod paymentMethod,
+                               String promoCodeRaw) {
         if (!shopStatusService.isSalesOpen()) {
             throw new IllegalStateException("Les ventes sont actuellement fermées. Revenez plus tard.");
         }
@@ -73,6 +75,8 @@ public class OrderService {
                 .paymentMethod(paymentMethod)
                 .status(Order.OrderStatus.PENDING)
                 .totalAmount(BigDecimal.ZERO)
+                .discountAmount(BigDecimal.ZERO)
+                .promoRedemptionRecorded(false)
                 .build();
 
         BigDecimal total = BigDecimal.ZERO;
@@ -137,14 +141,42 @@ public class OrderService {
             }
         }
 
-        order.setTotalAmount(total);
+        total = total.setScale(2, java.math.RoundingMode.HALF_UP);
+        BigDecimal discount = BigDecimal.ZERO;
+        PromoCode appliedPromoEntity = null;
+        String appliedPromoLabel = null;
+        if (promoCodeRaw != null && !promoCodeRaw.isBlank()) {
+            PromoCodeService.PromoResolution resolution =
+                    promoCodeService.resolveWithLockOrThrow(promoCodeRaw, total);
+            discount = resolution.discountAmount();
+            appliedPromoEntity = resolution.promo();
+            appliedPromoLabel = resolution.displayCode();
+        }
+        BigDecimal finalTotal = total.subtract(discount).setScale(2, java.math.RoundingMode.HALF_UP);
+        if (finalTotal.compareTo(BigDecimal.ZERO) < 0) {
+            finalTotal = BigDecimal.ZERO.setScale(2, java.math.RoundingMode.HALF_UP);
+        }
+
+        order.setDiscountAmount(discount);
+        order.setAppliedPromoCode(appliedPromoLabel);
+        order.setPromoCode(appliedPromoEntity);
+        order.setTotalAmount(finalTotal);
 
         if (paymentMethod == Order.PaymentMethod.PAYPAL) {
             if (!payPalService.isEnabled()) {
                 throw new RuntimeException("Le paiement PayPal n'est pas disponible. Choisissez « Paiement à la livraison ».");
             }
-            String paypalOrderId = payPalService.createOrder(total, "EUR");
+            if (finalTotal.compareTo(new BigDecimal("0.01")) < 0) {
+                throw new IllegalArgumentException(
+                        "Après remise, le montant PayPal doit être d'au moins 0,01 €. Choisissez « Paiement à la livraison » ou retirez le code.");
+            }
+            String paypalOrderId = payPalService.createOrder(finalTotal, "EUR");
             order.setPaypalOrderId(paypalOrderId);
+        }
+
+        if (paymentMethod == Order.PaymentMethod.PAY_ON_DELIVERY && appliedPromoEntity != null) {
+            promoCodeService.recordRedemption(appliedPromoEntity);
+            order.setPromoRedemptionRecorded(true);
         }
 
         order = orderRepository.save(order);
@@ -174,6 +206,11 @@ public class OrderService {
 
         if (!payPalService.captureOrder(paypalOrderId)) {
             throw new RuntimeException("Échec du paiement PayPal");
+        }
+
+        if (order.getPromoCode() != null && !order.isPromoRedemptionRecorded()) {
+            promoCodeService.recordRedemption(order.getPromoCode());
+            order.setPromoRedemptionRecorded(true);
         }
 
         order.setStatus(Order.OrderStatus.CONFIRMED);
@@ -239,6 +276,8 @@ public class OrderService {
                 ))
                 .collect(Collectors.toList());
 
+        BigDecimal disc = order.getDiscountAmount() != null ? order.getDiscountAmount() : BigDecimal.ZERO;
+
         return OrderDto.builder()
                 .id(order.getId())
                 .userId(order.getUser().getId())
@@ -252,6 +291,8 @@ public class OrderService {
                 .deliveryDate(order.getDeliveryDate())
                 .paymentMethod(order.getPaymentMethod())
                 .paypalOrderId(order.getPaypalOrderId())
+                .discountAmount(disc)
+                .appliedPromoCode(order.getAppliedPromoCode())
                 .build();
     }
 

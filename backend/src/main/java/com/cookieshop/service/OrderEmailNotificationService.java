@@ -71,6 +71,10 @@ public class OrderEmailNotificationService {
         sb.append("Commande n° ").append(order.getId()).append("\n");
         sb.append("Client : ").append(nvl(order.getCustomerName())).append("\n");
         sb.append("E-mail client : ").append(nvl(order.getCustomerEmail())).append("\n");
+        if (order.getDiscountAmount() != null && order.getDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+            sb.append("Code promo : ").append(nvl(order.getAppliedPromoCode())).append("\n");
+            sb.append("Remise : -").append(formatMoney(order.getDiscountAmount())).append(" €\n");
+        }
         sb.append("Montant total : ").append(formatMoney(order.getTotalAmount())).append(" €\n");
         sb.append("Statut : ").append(order.getStatus()).append("\n");
         sb.append("Paiement : ").append(order.getPaymentMethod()).append("\n");

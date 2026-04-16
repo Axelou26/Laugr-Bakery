@@ -18,7 +18,8 @@ export const routes: Routes = [
     children: [
       { path: '', loadComponent: () => import('./pages/admin/admin-dashboard.component').then(m => m.AdminDashboardComponent) },
       { path: 'commandes', loadComponent: () => import('./pages/admin/admin-orders.component').then(m => m.AdminOrdersComponent) },
-      { path: 'cookies', loadComponent: () => import('./pages/admin/admin-cookies.component').then(m => m.AdminCookiesComponent) }
+      { path: 'cookies', loadComponent: () => import('./pages/admin/admin-cookies.component').then(m => m.AdminCookiesComponent) },
+      { path: 'codes-promo', loadComponent: () => import('./pages/admin/admin-promo-codes.component').then(m => m.AdminPromoCodesComponent) }
     ]
   },
   { path: '**', redirectTo: '' }

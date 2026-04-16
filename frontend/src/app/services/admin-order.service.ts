@@ -22,6 +22,8 @@ export interface AdminOrder {
   shippingAddress: string;
   deliveryDate?: string;
   paymentMethod?: 'PAY_ON_DELIVERY' | 'PAYPAL';
+  discountAmount?: number;
+  appliedPromoCode?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

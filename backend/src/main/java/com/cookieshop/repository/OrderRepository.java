@@ -21,6 +21,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             + "LEFT JOIN FETCH o.items i "
             + "LEFT JOIN FETCH i.cookie "
             + "LEFT JOIN FETCH o.user "
+            + "LEFT JOIN FETCH o.promoCode "
             + "WHERE o.paypalOrderId = :paypalOrderId")
     Optional<Order> findByPaypalOrderIdWithDetails(@Param("paypalOrderId") String paypalOrderId);
 }

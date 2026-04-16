@@ -26,6 +26,8 @@ public class OrderDto {
     private LocalDateTime deliveryDate;
     private Order.PaymentMethod paymentMethod;
     private String paypalOrderId;
+    private BigDecimal discountAmount;
+    private String appliedPromoCode;
 
     @Data
     @NoArgsConstructor

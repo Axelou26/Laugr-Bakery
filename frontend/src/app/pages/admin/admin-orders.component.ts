@@ -55,6 +55,12 @@ import { ToastService } from '../../services/toast.service';
                 </li>
               }
             </ul>
+            @if (order.discountAmount && order.discountAmount > 0) {
+              <p class="promo-line">
+                Code promo <strong>{{ order.appliedPromoCode || '—' }}</strong> —
+                remise : −{{ order.discountAmount | number:'1.2-2' }} €
+              </p>
+            }
             <div class="order-total">Total : <strong>{{ order.totalAmount | number:'1.2-2' }} €</strong></div>
           </article>
         }
@@ -129,6 +135,11 @@ import { ToastService } from '../../services/toast.service';
     .order-items li {
       padding: 0.35rem 0;
       font-size: 0.95rem;
+    }
+    .promo-line {
+      font-size: 0.9rem;
+      color: #0f7a3e;
+      margin: 0.35rem 0 0;
     }
     .order-total {
       padding-top: 1rem;

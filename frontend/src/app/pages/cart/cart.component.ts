@@ -1,4 +1,12 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  ViewChild,
+  ElementRef,
+  effect,
+  untracked
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -9,6 +17,9 @@ import { ToastService } from '../../services/toast.service';
 import { FormsModule } from '@angular/forms';
 import { ShopStatusService } from '../../services/shop-status.service';
 import { environment } from '../../../environments/environment';
+import { PromoCodeService } from '../../services/promo-code.service';
+
+const PROMO_SESSION_KEY = 'laugr-cart-promo';
 
 declare global {
   interface Window {
@@ -74,9 +85,42 @@ declare global {
           }
         </div>
         <div class="cart-summary">
+          <div class="promo-block">
+            @if (appliedPromoCode) {
+              <div class="promo-applied">
+                <span>Code <strong>{{ appliedPromoCode }}</strong> appliqué</span>
+                <button type="button" class="btn-remove-promo" (click)="removePromo()">Retirer</button>
+              </div>
+            } @else {
+              <label class="promo-label">Code promo</label>
+              <div class="promo-row">
+                <input
+                  type="text"
+                  [(ngModel)]="promoInput"
+                  class="promo-input"
+                  placeholder="Ex : ETE2026"
+                  autocomplete="off"
+                  (keyup.enter)="applyPromo()"
+                />
+                <button type="button" class="btn-apply-promo" (click)="applyPromo()" [disabled]="promoBusy">
+                  {{ promoBusy ? '…' : 'Appliquer' }}
+                </button>
+              </div>
+            }
+          </div>
           <div class="summary-row">
+            <span>Sous-total</span>
+            <span>{{ cartService.totalPrice() | number:'1.2-2' }} €</span>
+          </div>
+          @if (promoDiscount > 0 && appliedPromoCode) {
+            <div class="summary-row discount-row">
+              <span>Remise ({{ appliedPromoCode }})</span>
+              <span>−{{ promoDiscount | number:'1.2-2' }} €</span>
+            </div>
+          }
+          <div class="summary-row total-row">
             <span>Total</span>
-            <strong>{{ cartService.totalPrice() | number:'1.2-2' }} €</strong>
+            <strong>{{ cartTotalAfterPromo() | number:'1.2-2' }} €</strong>
           </div>
           @if (!checkoutMode) {
             <button class="btn-checkout" [disabled]="checkoutButtonDisabled()" (click)="goToCheckout()">
@@ -219,12 +263,55 @@ declare global {
       position: sticky;
       top: 100px;
     }
+    .promo-block {
+      margin-bottom: 0.75rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .promo-label { font-weight: 600; margin-bottom: 0.5rem; display: block; color: var(--color-text); }
+    .promo-row { display: flex; gap: 0.5rem; }
+    .promo-input {
+      flex: 1;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-family: var(--font-sans);
+      text-transform: uppercase;
+    }
+    .btn-apply-promo {
+      padding: 0.6rem 0.9rem;
+      border: none;
+      border-radius: var(--radius-md);
+      background: var(--color-text);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-apply-promo:disabled { opacity: 0.6; cursor: not-allowed; }
+    .promo-applied {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.95rem;
+    }
+    .btn-remove-promo {
+      padding: 0.35rem 0.65rem;
+      font-size: 0.85rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: white;
+      cursor: pointer;
+    }
     .summary-row {
       display: flex;
       justify-content: space-between;
       padding: 1rem 0;
       font-size: 1.15rem;
     }
+    .discount-row { font-size: 1rem; color: #0f7a3e; }
+    .total-row { border-top: 1px solid var(--color-border); margin-top: 0.25rem; padding-top: 1rem; }
     .btn-checkout {
       width: 100%;
       margin-top: 1rem;
@@ -342,16 +429,123 @@ export class CartComponent implements OnInit, OnDestroy {
   placing = false;
   private paypalRendered = false;
 
+  promoInput = '';
+  appliedPromoCode: string | null = null;
+  promoDiscount = 0;
+  promoBusy = false;
+
   constructor(
     public cartService: CartService,
     private orderService: OrderService,
     private auth: AuthService,
     private router: Router,
     private toast: ToastService,
-    public shopStatus: ShopStatusService
-  ) {}
+    public shopStatus: ShopStatusService,
+    private promoCodeService: PromoCodeService
+  ) {
+    effect(() => {
+      if (this.cartService.items().length === 0) {
+        untracked(() => this.clearPromoLocal());
+      }
+    });
+  }
+
+  cartTotalAfterPromo(): number {
+    const sub = this.cartService.totalPrice();
+    return Math.max(0, Math.round((sub - this.promoDiscount) * 100) / 100);
+  }
+
+  private persistPromo(): void {
+    try {
+      if (this.appliedPromoCode) {
+        sessionStorage.setItem(PROMO_SESSION_KEY, JSON.stringify({ code: this.appliedPromoCode }));
+      } else {
+        sessionStorage.removeItem(PROMO_SESSION_KEY);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private clearPromoLocal(): void {
+    this.promoInput = '';
+    this.appliedPromoCode = null;
+    this.promoDiscount = 0;
+    this.persistPromo();
+  }
+
+  private loadPromoFromSession(): void {
+    try {
+      const raw = sessionStorage.getItem(PROMO_SESSION_KEY);
+      if (!raw) return;
+      const o = JSON.parse(raw) as { code?: string };
+      if (o.code?.trim()) {
+        this.appliedPromoCode = o.code.trim().toUpperCase();
+        this.refreshPromoAgainstCart(false);
+      }
+    } catch {
+      sessionStorage.removeItem(PROMO_SESSION_KEY);
+    }
+  }
+
+  /** Revalide le code avec le sous-total actuel (panier). */
+  refreshPromoAgainstCart(showToast: boolean): void {
+    if (!this.appliedPromoCode) return;
+    const sub = this.cartService.totalPrice();
+    this.promoCodeService.validate(this.appliedPromoCode, sub).subscribe({
+      next: (r) => {
+        if (r.valid && r.discountAmount > 0) {
+          this.promoDiscount = Number(r.discountAmount);
+          this.persistPromo();
+        } else {
+          this.clearPromoLocal();
+          if (showToast) {
+            this.toast.warning(r.message || 'Code promo non applicable');
+          }
+        }
+      },
+      error: () => {
+        this.clearPromoLocal();
+        if (showToast) this.toast.error('Impossible de vérifier le code promo');
+      }
+    });
+  }
+
+  applyPromo(): void {
+    const code = (this.promoInput || '').trim();
+    if (!code) {
+      this.toast.warning('Saisissez un code promo');
+      return;
+    }
+    this.promoBusy = true;
+    const sub = this.cartService.totalPrice();
+    this.promoCodeService.validate(code, sub).subscribe({
+      next: (r) => {
+        this.promoBusy = false;
+        if (r.valid && r.discountAmount > 0) {
+          this.appliedPromoCode = code.toUpperCase();
+          this.promoDiscount = Number(r.discountAmount);
+          this.promoInput = '';
+          this.persistPromo();
+          this.toast.success(r.message || 'Code promo appliqué');
+        } else {
+          this.toast.warning(r.message || 'Code non valide');
+        }
+      },
+      error: () => {
+        this.promoBusy = false;
+        this.toast.error('Vérification du code impossible');
+      }
+    });
+  }
+
+  removePromo(): void {
+    this.clearPromoLocal();
+  }
+
 
   ngOnInit() {
+    this.loadPromoFromSession();
     this.shopStatus.loadStatus().subscribe({
       next: () => {
         this.refreshDeliveryOptions();
@@ -507,6 +701,32 @@ export class CartComponent implements OnInit, OnDestroy {
       this.router.navigate(['/connexion'], { queryParams: { returnUrl: '/panier' } });
       return;
     }
+    if (this.appliedPromoCode) {
+      const sub = this.cartService.totalPrice();
+      this.promoCodeService.validate(this.appliedPromoCode, sub).subscribe({
+        next: (r) => {
+          if (r.valid && r.discountAmount > 0) {
+            this.promoDiscount = Number(r.discountAmount);
+            this.persistPromo();
+            this.openCheckoutUi();
+          } else {
+            this.clearPromoLocal();
+            this.toast.warning(r.message || 'Code promo non applicable');
+            this.openCheckoutUi();
+          }
+        },
+        error: () => {
+          this.clearPromoLocal();
+          this.toast.error('Impossible de vérifier le code promo');
+          this.openCheckoutUi();
+        }
+      });
+      return;
+    }
+    this.openCheckoutUi();
+  }
+
+  private openCheckoutUi(): void {
     this.checkoutMode = true;
     this.refreshDeliveryOptions();
     this.paypalRendered = false;
@@ -556,7 +776,14 @@ export class CartComponent implements OnInit, OnDestroy {
         const { cartItems, boxes } = this.cartService.getItemsForCheckout();
         try {
           const order = await firstValueFrom(
-            this.orderService.createOrder(cartItems, boxes, this.shippingAddress, this.deliveryDate, 'PAYPAL')
+            this.orderService.createOrder(
+              cartItems,
+              boxes,
+              this.shippingAddress,
+              this.deliveryDate,
+              'PAYPAL',
+              this.appliedPromoCode
+            )
           );
           return order?.paypalOrderId || '';
         } catch (err: unknown) {
@@ -569,6 +796,7 @@ export class CartComponent implements OnInit, OnDestroy {
         try {
           await firstValueFrom(this.orderService.capturePayPal(data.orderID));
           this.cartService.clear();
+          this.clearPromoLocal();
           this.checkoutMode = false;
           this.shippingAddress = this.fulfillmentInsep;
           this.toast.success('Paiement PayPal réussi ! Commande confirmée.');
@@ -601,9 +829,19 @@ export class CartComponent implements OnInit, OnDestroy {
     this.placing = true;
     const { cartItems, boxes } = this.cartService.getItemsForCheckout();
 
-    this.orderService.createOrder(cartItems, boxes, this.shippingAddress, this.deliveryDate, 'PAY_ON_DELIVERY').subscribe({
+    this.orderService
+      .createOrder(
+        cartItems,
+        boxes,
+        this.shippingAddress,
+        this.deliveryDate,
+        'PAY_ON_DELIVERY',
+        this.appliedPromoCode
+      )
+      .subscribe({
       next: () => {
         this.cartService.clear();
+        this.clearPromoLocal();
         this.checkoutMode = false;
         this.shippingAddress = this.fulfillmentInsep;
         this.placing = false;

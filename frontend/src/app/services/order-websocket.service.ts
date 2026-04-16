@@ -4,7 +4,16 @@ import { AuthService } from './auth.service';
 import { ToastService } from './toast.service';
 import { environment } from '../../environments/environment';
 
-type SockJsConstructor = new (url: string, _reserved?: null, options?: Record<string, unknown>) => WebSocket;
+/** Exclure `jsonp` : sous Firefox il provoque NS_ERROR_CORRUPTED_CONTENT si la réponse n’est pas du JS valide (ex. handshake refusé). */
+const SOCKJS_OPTIONS = {
+  transports: ['websocket', 'xhr-streaming', 'xhr-polling'] as const
+};
+
+type SockJsConstructor = new (
+  url: string,
+  _reserved?: null,
+  options?: { transports?: readonly string[] }
+) => WebSocket;
 
 @Injectable({ providedIn: 'root' })
 export class OrderWebSocketService {
@@ -41,7 +50,8 @@ export class OrderWebSocketService {
         const SockJS = (sockMod as { default?: SockJsConstructor }).default ?? (sockMod as unknown as SockJsConstructor);
         const url = `${environment.apiUrl}/ws?token=${encodeURIComponent(tokenAtStart)}`;
         const client = new Client({
-          webSocketFactory: () => new SockJS(url) as unknown as WebSocket,
+          webSocketFactory: () =>
+            new SockJS(url, null, { transports: [...SOCKJS_OPTIONS.transports] }) as unknown as WebSocket,
           reconnectDelay: 5000,
           heartbeatIncoming: 4000,
           heartbeatOutgoing: 4000,
