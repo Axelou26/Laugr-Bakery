@@ -10,7 +10,6 @@ import java.math.BigDecimal;
 @RestController
 @RequestMapping("/api/promo-codes")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:4200")
 public class PromoCodePublicController {
 
     private final PromoCodeService promoCodeService;

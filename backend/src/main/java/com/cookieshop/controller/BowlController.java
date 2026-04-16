@@ -14,7 +14,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/bowls")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:4200")
 public class BowlController {
 
     private final BowlService bowlService;
