@@ -1,9 +1,7 @@
 # Activé sur Render via SPRING_PROFILES_ACTIVE=prod (voir Dockerfile).
 # Supprime toute ambiguïté H2 / PostgreSQL et fixe le dialecte Hibernate.
 #
-# Images : fichiers sous upload-dir ; les URLs renvoyées à l’upload utilisent APP_BASE_URL si défini,
-# sinon l’origine dérivée de la requête (nécessite forward-headers derrière Render).
-# Le disque conteneur est éphémère sauf disque persistant Render — pour des fichiers durables, prévoir S3 / Cloudinary.
+# Images : upload via Cloudinary (variables CLOUDINARY_CLOUD_NAME/CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET).
 
 server:
   forward-headers-strategy: framework
@@ -15,6 +13,10 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      # Schéma aligné sur les entités (colonnes manquantes en prod, ex. promo_redemption_recorded).
+      # Si une variable SPRING_JPA_HIBERNATE_DDL_AUTO est définie sur l’hébergeur, elle prévaut.
+      ddl-auto: update
   h2:
     console:
       enabled: false
@@ -34,3 +36,8 @@ app:
   upload-dir: ${APP_UPLOAD_DIR:/app/uploads}
   # Optionnel : URL publique de l’API (ex. https://xxx.onrender.com). Si vide, dérivée de la requête HTTP.
   base-url: ${APP_BASE_URL:}
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+  api-key: ${CLOUDINARY_API_KEY:}
+  api-secret: ${CLOUDINARY_API_SECRET:}

@@ -68,3 +68,9 @@ paypal:
   client-id: ${PAYPAL_CLIENT_ID:}
   client-secret: ${PAYPAL_CLIENT_SECRET:}
   mode: ${PAYPAL_MODE:sandbox}
+
+# Cloudinary (images) — définir les variables d'environnement CLOUDINARY_* en local/prod.
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+  api-key: ${CLOUDINARY_API_KEY:}
+  api-secret: ${CLOUDINARY_API_SECRET:}
